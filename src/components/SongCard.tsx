@@ -19,6 +19,8 @@ interface SongContext {
   readonly onSongChange: (song: Song) => void;
   /** Remembers a spelling for future songs. */
   readonly onRememberSpelling: (spelling: string) => void;
+  /** Keeps a word the engine cannot sing out of future songs. */
+  readonly onAvoidWord: (word: string) => void;
 }
 
 interface SongCardProps extends SongContext {
@@ -65,7 +67,7 @@ function lyricsAsText(song: Song): string {
 const sameLocation = (a: WordLocation | null, b: WordLocation) =>
   a !== null && a.sectionIndex === b.sectionIndex && a.lineIndex === b.lineIndex && a.wordIndex === b.wordIndex;
 
-function SongBody({ song, review, onRegenerate, onSongChange, onRememberSpelling, ...audio }: SongBodyProps) {
+function SongBody({ song, review, onRegenerate, onSongChange, onRememberSpelling, onAvoidWord, ...audio }: SongBodyProps) {
   // Edits and paid audio wait for the pronunciation review, which may still change the lyrics.
   const reviewing = review.status === "running";
   const [showVoice, setShowVoice] = useState(false);
@@ -128,6 +130,10 @@ function SongBody({ song, review, onRegenerate, onSongChange, onRememberSpelling
           accessCode={audio.accessCode}
           audioEnabled={audio.audioEnabled}
           onChoose={(choice) => applyChoice(selected, choice)}
+          onAvoid={(word) => {
+            onAvoidWord(word);
+            setSelected(null);
+          }}
           onClose={() => setSelected(null)}
         />
       )}
@@ -266,8 +272,9 @@ function SongSpeech({ song }: { readonly song: Song }) {
         onClick={() => (speaking ? stop() : speak(song.sections.flatMap((section) => section.voiceLines)))}
         aria-pressed={speaking}
       >
-        {speaking ? "עצירת ההקראה" : "הקראה חינמית של הטקסט לקול"}
+        {speaking ? "עצירת ההקראה" : "הקראה חינמית של הניקוד"}
       </button>
+      <span className="audio__hint">בודקת מה הניקוד אומר, לא איך הזמר ישיר.</span>
     </div>
   );
 }

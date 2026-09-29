@@ -16,6 +16,12 @@ export type SongResult =
   | { readonly status: "done"; readonly song: Song; readonly review: ReviewState }
   | { readonly status: "error"; readonly message: string };
 
+/** What the user has learned by ear, sent with every new song. */
+export interface PronunciationMemory {
+  readonly lexicon: readonly LexiconEntry[];
+  readonly avoidWords: readonly string[];
+}
+
 export interface SongBrief {
   readonly text: string;
   readonly subjectGender: SubjectGender;
@@ -27,15 +33,15 @@ export interface SongBrief {
  * so results appear as soon as they are ready and a failure affects only its
  * own card.
  */
-export function useSongBatch(accessCode: string, lexicon: readonly LexiconEntry[]) {
+export function useSongBatch(accessCode: string, memory: PronunciationMemory) {
   const [results, setResults] = useState<ReadonlyMap<VariationId, SongResult>>(new Map());
   const controllers = useRef(new Map<VariationId, AbortController>());
   const lastBrief = useRef<SongBrief | null>(null);
-  // Read at request time, so a regenerated song uses the spellings picked since.
-  const latestLexicon = useRef(lexicon);
+  // Read at request time, so a regenerated song uses what was learned since.
+  const latestMemory = useRef(memory);
   useEffect(() => {
-    latestLexicon.current = lexicon;
-  }, [lexicon]);
+    latestMemory.current = memory;
+  }, [memory]);
 
   const setResult = useCallback((id: VariationId, result: SongResult) => {
     setResults((previous) => new Map(previous).set(id, result));
@@ -47,12 +53,17 @@ export function useSongBatch(accessCode: string, lexicon: readonly LexiconEntry[
       const controller = new AbortController();
       controllers.current.set(id, controller);
       setResult(id, { status: "loading" });
-      const personalLexicon = [...latestLexicon.current];
+      const personalLexicon = [...latestMemory.current.lexicon];
+      const avoidWords = [...latestMemory.current.avoidWords];
 
       try {
         let song: Song;
         try {
-          song = await requestLyrics({ ...brief, variationId: id, lexicon: personalLexicon }, accessCode, controller.signal);
+          song = await requestLyrics(
+            { ...brief, variationId: id, lexicon: personalLexicon, avoidWords },
+            accessCode,
+            controller.signal,
+          );
         } catch (error) {
           if (!isAbortError(error)) setResult(id, { status: "error", message: errorMessage(error) });
           return;

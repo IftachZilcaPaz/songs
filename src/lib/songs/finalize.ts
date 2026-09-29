@@ -1,6 +1,6 @@
 import { lexiconFromPointedWords, mergeLexicons, type Lexicon } from "@/lib/hebrew/lexicon";
 import { stripNiqqud } from "@/lib/hebrew/niqqud";
-import { collectPointedWords, findVoiceIssues, prepareVoiceLine } from "@/lib/hebrew/voice-text";
+import { collectPointedWords, findAvoidedWords, findVoiceIssues, prepareVoiceLine } from "@/lib/hebrew/voice-text";
 import type { SongDraft } from "./draft";
 import type { Song, SongSection } from "./types";
 import { getVariation, type VariationId } from "./variations";
@@ -19,6 +19,11 @@ export class EmptySongError extends Error {
   }
 }
 
+function avoidedWordWarnings(lines: readonly string[], avoidWords: ReadonlySet<string>): string[] {
+  const found = findAvoidedWords(lines, avoidWords);
+  return found.length > 0 ? [`יש בשיר מילים שהמנוע מתקשה לשיר (${found.join(", ")}). כדאי לבקש גרסה חדשה.`] : [];
+}
+
 const unique = (values: readonly string[]) => [...new Set(values.map((value) => value.trim()).filter(Boolean))];
 
 function prepareLines(lines: readonly string[], lexicon: Lexicon, limit: number): string[] {
@@ -28,7 +33,12 @@ function prepareLines(lines: readonly string[], lexicon: Lexicon, limit: number)
     .slice(0, limit);
 }
 
-export interface SongIdentity {
+export interface FinalizeContext {
+  readonly variationId: VariationId;
+  /** Confirmed spellings (shared and personal), enforced on every voice line. */
+  readonly lexicon: Lexicon;
+  /** Words the engine cannot sing; any that slipped through are reported as warnings. */
+  readonly avoidWords: ReadonlySet<string>;
   readonly id: string;
   readonly seed: number;
 }
@@ -38,7 +48,7 @@ export interface SongIdentity {
  * keeps names and confirmed words spelled consistently, and derives the
  * display text from the voice text so the two never drift apart.
  */
-export function finalizeSong(draft: SongDraft, variationId: VariationId, baseLexicon: Lexicon, { id, seed }: SongIdentity): Song {
+export function finalizeSong(draft: SongDraft, { variationId, lexicon: baseLexicon, avoidWords, id, seed }: FinalizeContext): Song {
   // Confirmed-by-ear spellings take precedence over the model's pointing of names.
   const lexicon = mergeLexicons(lexiconFromPointedWords(draft.names), baseLexicon);
 
@@ -69,7 +79,7 @@ export function finalizeSong(draft: SongDraft, variationId: VariationId, baseLex
     pointedWords: collectPointedWords(allVoiceLines),
     checkByEar: unique([...draft.names, ...draft.check_by_ear].map((word) => prepareVoiceLine(word, lexicon))),
     musicStyles: unique([...getVariation(variationId).musicStyles, ...extraStyles]),
-    warnings: findVoiceIssues([...allVoiceLines, ...previewVoiceLines]),
+    warnings: [...findVoiceIssues([...allVoiceLines, ...previewVoiceLines]), ...avoidedWordWarnings(allVoiceLines, avoidWords)],
     seed,
   };
 }

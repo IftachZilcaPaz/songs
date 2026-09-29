@@ -72,17 +72,45 @@ export function mergeLexicons(...lexicons: readonly Lexicon[]): Lexicon {
   return new Map(lexicons.flatMap((lexicon) => [...lexicon]));
 }
 
-function lookup(bare: string, lexicon: Lexicon): string | undefined {
-  const exact = lexicon.get(bare);
-  if (exact) return exact;
+/**
+ * Finds a known word in a bare token, either exactly or after up to two
+ * one-letter prefixes (ה, ו, ב, ל, מ, ש, כ).
+ */
+export function matchWithPrefix<T>(bare: string, find: (word: string) => T | undefined): { prefix: string; match: T } | undefined {
+  const exact = find(bare);
+  if (exact !== undefined) return { prefix: "", match: exact };
 
   for (let length = 1; length <= MAX_PREFIX_LENGTH && length < bare.length; length++) {
     const prefix = bare.slice(0, length);
     if (![...prefix].every((letter) => PREFIX_LETTERS.has(letter))) break;
-    const match = lexicon.get(bare.slice(length));
-    if (match) return prefix + match;
+    const match = find(bare.slice(length));
+    if (match !== undefined) return { prefix, match };
   }
   return undefined;
+}
+
+function lookup(bare: string, lexicon: Lexicon): string | undefined {
+  const found = matchWithPrefix(bare, (word) => lexicon.get(word));
+  return found && found.prefix + found.match;
+}
+
+/** Normalizes a single bare Hebrew word, or returns undefined if the input is not one. */
+export function asBareWord(text: string): string | undefined {
+  const tokens = tokenizeHebrewWords(stripNiqqud(text.trim()));
+  return tokens.length === 1 && tokens[0] === stripNiqqud(text.trim()) ? tokens[0] : undefined;
+}
+
+/** Parses a word-list file: one bare Hebrew word per line; blank lines and `#` comments are ignored. */
+export function parseWordList(source: string): ReadonlySet<string> {
+  const words = new Set<string>();
+  source.split(/\r?\n/).forEach((rawLine, index) => {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) return;
+    const word = asBareWord(line);
+    if (!word) throw new Error(`Word list line ${index + 1}: "${rawLine}" is not a single Hebrew word`);
+    words.add(word);
+  });
+  return words;
 }
 
 /** Replaces every word found in the lexicon (with or without a prefix) by its confirmed spelling. */

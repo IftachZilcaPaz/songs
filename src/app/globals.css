@@ -562,3 +562,19 @@ details.notice summary {
   margin: 8px 0 0;
   padding-inline-start: 20px;
 }
+
+.lexicon__group {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.lexicon__title {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.fixer__avoid {
+  justify-self: start;
+}

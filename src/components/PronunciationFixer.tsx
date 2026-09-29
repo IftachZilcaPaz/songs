@@ -27,6 +27,8 @@ interface PronunciationFixerProps {
   readonly accessCode: string;
   readonly audioEnabled: boolean;
   readonly onChoose: (choice: PronunciationChoice) => void;
+  /** No spelling works: keep this word out of future songs. */
+  readonly onAvoid: (word: string) => void;
   readonly onClose: () => void;
 }
 
@@ -35,7 +37,7 @@ interface PronunciationFixerProps {
  * sung in its line, and applies the one that sounds right.
  * Mount with a `key` per word so its state starts fresh.
  */
-export function PronunciationFixer({ song, location, vocal, accessCode, audioEnabled, onChoose, onClose }: PronunciationFixerProps) {
+export function PronunciationFixer({ song, location, vocal, accessCode, audioEnabled, onChoose, onAvoid, onClose }: PronunciationFixerProps) {
   const word = getWordAt(song, location) ?? "";
   const line = song.sections[location.sectionIndex]?.voiceLines[location.lineIndex] ?? "";
 
@@ -121,6 +123,12 @@ export function PronunciationFixer({ song, location, vocal, accessCode, audioEna
           </div>
         </>
       )}
+
+      {options.status !== "loading" && (
+        <button type="button" className="button button--ghost fixer__avoid" onClick={() => onAvoid(stripNiqqud(word))}>
+          אף אפשרות לא עובדת: לא להשתמש במילה הזו בשירים הבאים
+        </button>
+      )}
     </section>
   );
 }
@@ -155,8 +163,13 @@ function OptionRow({ label, sayAs, spelling, line, song, vocal, accessCode, audi
       </div>
       <div className="option__actions">
         {speech.supported && (
-          <button type="button" className="button button--ghost" onClick={() => speech.speak([line])}>
-            הקראה
+          <button
+            type="button"
+            className="button button--ghost"
+            onClick={() => speech.speak([line])}
+            title="הקראה חינמית: בודקת את הניקוד, לא את השירה"
+          >
+            הקראת הניקוד
           </button>
         )}
         {audioEnabled && (

@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
+import { asBareWord } from "@/lib/hebrew/lexicon";
 import { stripNiqqud } from "@/lib/hebrew/niqqud";
-import { MAX_PERSONAL_LEXICON_ENTRIES, type LexiconEntry } from "@/lib/songs/types";
-
-const STORAGE_KEY = "songs.lexicon";
+import { MAX_AVOID_WORDS, MAX_PERSONAL_LEXICON_ENTRIES, type LexiconEntry } from "@/lib/songs/types";
+import { useStoredList } from "./useStoredList";
 
 function isEntry(value: unknown): value is LexiconEntry {
   return (
@@ -16,54 +16,48 @@ function isEntry(value: unknown): value is LexiconEntry {
   );
 }
 
-function read(): LexiconEntry[] {
-  try {
-    const parsed: unknown = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "[]");
-    return Array.isArray(parsed) ? parsed.filter(isEntry) : [];
-  } catch {
-    return [];
-  }
-}
-
-function write(entries: readonly LexiconEntry[]): void {
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
-  } catch {
-    // Storage unavailable (private mode): the dictionary lasts for this visit only.
-  }
+function isAvoidWord(value: unknown): value is string {
+  return typeof value === "string" && asBareWord(value) === value;
 }
 
 /**
- * Spellings the user picked by ear, kept in this browser and sent with every
- * new song so the same word is never mispronounced twice.
+ * What this browser has learned by ear, sent with every new song:
+ * spellings that sounded right, and words the engine could not sing at all.
  */
 export function usePersonalLexicon() {
-  const [entries, setEntries] = useState<readonly LexiconEntry[]>([]);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrate from browser-only storage after mount
-    setEntries(read());
-  }, []);
-
-  const update = useCallback((next: (previous: readonly LexiconEntry[]) => LexiconEntry[]) => {
-    setEntries((previous) => {
-      const updated = next(previous);
-      write(updated);
-      return updated;
-    });
-  }, []);
+  const spellings = useStoredList("songs.lexicon", isEntry, MAX_PERSONAL_LEXICON_ENTRIES);
+  const avoided = useStoredList("songs.avoidWords", isAvoidWord, MAX_AVOID_WORDS);
+  const updateSpellings = spellings.update;
+  const updateAvoided = avoided.update;
 
   const save = useCallback(
     (pointed: string) => {
       const bare = stripNiqqud(pointed);
-      update((previous) =>
-        [...previous.filter(([word]) => word !== bare), [bare, pointed] as LexiconEntry].slice(-MAX_PERSONAL_LEXICON_ENTRIES),
-      );
+      updateSpellings((previous) => [...previous.filter(([word]) => word !== bare), [bare, pointed]]);
+      updateAvoided((previous) => previous.filter((word) => word !== bare));
     },
-    [update],
+    [updateSpellings, updateAvoided],
   );
 
-  const remove = useCallback((bare: string) => update((previous) => previous.filter(([word]) => word !== bare)), [update]);
+  const remove = useCallback(
+    (bare: string) => updateSpellings((previous) => previous.filter(([word]) => word !== bare)),
+    [updateSpellings],
+  );
 
-  return { entries, save, remove };
+  const avoid = useCallback(
+    (word: string) => {
+      const bare = asBareWord(word);
+      if (!bare) return;
+      updateAvoided((previous) => [...previous.filter((existing) => existing !== bare), bare]);
+      updateSpellings((previous) => previous.filter(([existing]) => existing !== bare));
+    },
+    [updateAvoided, updateSpellings],
+  );
+
+  const unavoid = useCallback(
+    (bare: string) => updateAvoided((previous) => previous.filter((word) => word !== bare)),
+    [updateAvoided],
+  );
+
+  return { entries: spellings.items, avoidWords: avoided.items, save, remove, avoid, unavoid };
 }

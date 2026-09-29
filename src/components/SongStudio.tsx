@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { INPUT_TEXT_MAX, INPUT_TEXT_MIN, type SubjectGender, type Vocal } from "@/lib/songs/types";
 import {
   DEFAULT_VARIATION_IDS,
@@ -64,7 +64,8 @@ export function SongStudio({ audioEnabled, accessCodeRequired }: SongStudioProps
   const [vocal, setVocal] = useState<Vocal>("auto");
   const [accessCode, setAccessCode] = useState("");
   const lexicon = usePersonalLexicon();
-  const { results, generate, regenerate, replaceSong, isBusy } = useSongBatch(accessCode, lexicon.entries);
+  const memory = useMemo(() => ({ lexicon: lexicon.entries, avoidWords: lexicon.avoidWords }), [lexicon.entries, lexicon.avoidWords]);
+  const { results, generate, regenerate, replaceSong, isBusy } = useSongBatch(accessCode, memory);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrate from browser-only storage after mount
@@ -151,6 +152,7 @@ export function SongStudio({ audioEnabled, accessCodeRequired }: SongStudioProps
               onRegenerate={() => regenerate(id)}
               onSongChange={(song) => replaceSong(id, song)}
               onRememberSpelling={lexicon.save}
+              onAvoidWord={lexicon.avoid}
               audioEnabled={audioEnabled}
               vocal={vocal}
               accessCode={accessCode}
@@ -159,7 +161,12 @@ export function SongStudio({ audioEnabled, accessCodeRequired }: SongStudioProps
         </section>
       )}
 
-      <PersonalLexicon entries={lexicon.entries} onRemove={lexicon.remove} />
+      <PersonalLexicon
+        entries={lexicon.entries}
+        avoidWords={lexicon.avoidWords}
+        onRemove={lexicon.remove}
+        onUnavoid={lexicon.unavoid}
+      />
     </main>
   );
 }

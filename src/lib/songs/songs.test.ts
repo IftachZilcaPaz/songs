@@ -8,6 +8,7 @@ import { AudioRequestSchema } from "./types";
 import { getVariation } from "./variations";
 
 const lexicon = parseLexicon("אחת = אחַת\nנסו = נסוּ");
+const context = (id: string, avoidWords: ReadonlySet<string> = new Set()) => ({ variationId: "pop" as const, lexicon, avoidWords, id, seed: 7 });
 
 const draft: SongDraft = {
   title: "דָנָה בת ארבעים",
@@ -23,7 +24,7 @@ const draft: SongDraft = {
 };
 
 describe("finalizeSong", () => {
-  const song = finalizeSong(draft, "pop", lexicon, { id: "id-1", seed: 7 });
+  const song = finalizeSong(draft, context("id-1"));
 
   it("derives display lines from voice lines without niqqud", () => {
     expect(song.sections).toHaveLength(2);
@@ -43,12 +44,17 @@ describe("finalizeSong", () => {
   });
 
   it("falls back to the chorus for the preview", () => {
-    const withoutPreview = finalizeSong({ ...draft, preview_lines: [] }, "pop", lexicon, { id: "id-2", seed: 7 });
+    const withoutPreview = finalizeSong({ ...draft, preview_lines: [] }, context("id-2"));
     expect(withoutPreview.previewVoiceLines).toEqual(["דָנָה, דָנָה", "נסוּ לעמוד בקצב"]);
   });
 
+  it("warns about avoided words that slipped through, including prefixed forms", () => {
+    const warned = finalizeSong(draft, context("id-3", new Set(["שמחה", "קצב"])));
+    expect(warned.warnings.at(-1)).toContain("שמחה, קצב");
+  });
+
   it("rejects a draft without lyrics", () => {
-    expect(() => finalizeSong({ ...draft, sections: [{ kind: "verse", lines: [" "] }] }, "pop", lexicon, { id: "x", seed: 7 })).toThrow(EmptySongError);
+    expect(() => finalizeSong({ ...draft, sections: [{ kind: "verse", lines: [" "] }] }, context("x"))).toThrow(EmptySongError);
   });
 });
 

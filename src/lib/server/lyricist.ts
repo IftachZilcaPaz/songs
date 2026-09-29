@@ -17,14 +17,17 @@ export interface WriteSongInput {
   readonly subjectGender: SubjectGender;
   /** Spellings the user picked by ear; they override the shared lexicon. */
   readonly lexicon: readonly LexiconEntry[];
+  /** Words the user found the engine cannot sing. */
+  readonly avoidWords: readonly string[];
 }
 
-export async function writeSong({ text, variationId, subjectGender, lexicon }: WriteSongInput): Promise<Song> {
+export async function writeSong({ text, variationId, subjectGender, lexicon, avoidWords }: WriteSongInput): Promise<Song> {
   const rules = await getVoiceRules();
+  const avoid = new Set([...rules.avoidWords, ...avoidWords]);
 
   const draft = await askClaude({
     system: buildSystemPrompt(rules.document, rules.lexicon),
-    user: buildUserPrompt(text, getVariation(variationId), subjectGender),
+    user: buildUserPrompt(text, getVariation(variationId), subjectGender, [...avoid]),
     schema: SongDraftSchema,
     effort: getEnv().LYRICS_EFFORT,
     maxTokens: 16_000,
@@ -32,8 +35,13 @@ export async function writeSong({ text, variationId, subjectGender, lexicon }: W
   });
 
   try {
-    const identity = { id: randomUUID(), seed: randomInt(MAX_SEED) };
-    return finalizeSong(draft, variationId, mergeLexicons(rules.lexicon, new Map(lexicon)), identity);
+    return finalizeSong(draft, {
+      variationId,
+      lexicon: mergeLexicons(rules.lexicon, new Map(lexicon)),
+      avoidWords: avoid,
+      id: randomUUID(),
+      seed: randomInt(MAX_SEED),
+    });
   } catch (error) {
     if (error instanceof EmptySongError) throw new PublicError(502, "השיר יצא ריק. נסו שוב.");
     throw error;

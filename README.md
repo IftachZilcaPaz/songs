@@ -32,6 +32,10 @@ Each song also gets a fixed `seed`, reused for every render, so re-rendering aft
 
 On a song card, **תיקון הגייה** turns every word into a button. Clicking a word that was sung wrongly asks Claude for three or four alternative voice spellings (same letters, different niqqud). Each option can be heard sung in its line, next to the current spelling. The chosen spelling is applied to the line or to the whole song, and can be remembered in **המילון שלי**. That personal dictionary is kept in the browser and sent with every new song, so a word fixed once stays fixed.
 
+When no spelling works, **אף אפשרות לא עובדת** adds the word to the personal avoid list: new songs are written without it, and a warning appears if it slips through. Colorful everyday words are otherwise kept on purpose; the writer is told to point them carefully rather than replace them. All prompts ask for niqqud that follows everyday spoken Israeli Hebrew rather than normative grammar (וּבַּבַּיִת, u-ba-BA-yit).
+
+**Avoiding a word for everyone:** add it to `rules/avoid-words.txt` (one bare word per line).
+
 **Adding a confirmed word for everyone:** add a line `מילה = מילה מנוקדת` to `rules/voice-lexicon.txt` after hearing it. The app rejects a line whose pointed form doesn't match the bare word.
 
 ## Setup

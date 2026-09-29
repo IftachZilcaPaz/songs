@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { asBareWord } from "@/lib/hebrew/lexicon";
 import { stripNiqqud } from "@/lib/hebrew/niqqud";
 import type { LineFix } from "./review";
 import { VARIATION_IDS, type VariationId } from "./variations";
@@ -59,12 +60,24 @@ export const LexiconEntrySchema = z
   .refine(([bare, pointed]) => stripNiqqud(pointed) === bare, "pointed form must match the bare word");
 export type LexiconEntry = z.infer<typeof LexiconEntrySchema>;
 
+export const MAX_AVOID_WORDS = 200;
+
+/** A single bare Hebrew word the singing engine keeps mispronouncing. */
+export const AvoidWordSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(40)
+  .refine((word) => asBareWord(word) === word, "must be a single Hebrew word without niqqud");
+
 export const LyricsRequestSchema = z.object({
   text: z.string().trim().min(INPUT_TEXT_MIN).max(INPUT_TEXT_MAX),
   variationId: z.enum(VARIATION_IDS),
   subjectGender: z.enum(SUBJECT_GENDERS).default("unspecified"),
   /** Spellings the user picked by ear; applied to every new song. */
   lexicon: z.array(LexiconEntrySchema).max(MAX_PERSONAL_LEXICON_ENTRIES).default([]),
+  /** Words the user found the engine cannot sing; new songs avoid them. */
+  avoidWords: z.array(AvoidWordSchema).max(MAX_AVOID_WORDS).default([]),
 });
 export type LyricsRequest = z.input<typeof LyricsRequestSchema>;
 

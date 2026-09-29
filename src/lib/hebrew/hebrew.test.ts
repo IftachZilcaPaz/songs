@@ -1,8 +1,8 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { applyLexicon, lexiconFromPointedWords, mergeLexicons, parseLexicon, tokenizeHebrewWords } from "./lexicon";
+import { applyLexicon, asBareWord, lexiconFromPointedWords, mergeLexicons, parseLexicon, parseWordList, tokenizeHebrewWords } from "./lexicon";
 import { hasNiqqud, removeDisallowedDagesh, stripNiqqud } from "./niqqud";
-import { collectPointedWords, findVoiceIssues, prepareVoiceLine } from "./voice-text";
+import { collectPointedWords, findAvoidedWords, findVoiceIssues, prepareVoiceLine } from "./voice-text";
 
 const lexicon = parseLexicon(readFileSync(new URL("../../../rules/voice-lexicon.txt", import.meta.url), "utf8"));
 
@@ -93,5 +93,24 @@ describe("findVoiceIssues", () => {
 
   it("returns nothing for clean lines", () => {
     expect(findVoiceIssues(["חוגגת ארבעים שנה"])).toEqual([]);
+  });
+});
+
+describe("avoid words", () => {
+  it("accepts only a single Hebrew word and strips niqqud", () => {
+    expect(asBareWord(" שקשוקָה ")).toBe("שקשוקה");
+    expect(asBareWord("שתי מילים")).toBeUndefined();
+    expect(asBareWord("hello")).toBeUndefined();
+  });
+
+  it("parses a word list and rejects invalid lines", () => {
+    expect([...parseWordList("# comment\n\nמהחלון\nשקשוקה\n")]).toEqual(["מהחלון", "שקשוקה"]);
+    expect(() => parseWordList("שתי מילים")).toThrow(/line 1/);
+  });
+
+  it("finds avoided words with or without prefixes, once each", () => {
+    const avoid = new Set(["בית", "חלון"]);
+    expect(findAvoidedWords(["ובבית ובחלון", "הבית שלנו", "בית"], avoid)).toEqual(["בית", "חלון"]);
+    expect(findAvoidedWords(["אין כאן כלום"], avoid)).toEqual([]);
   });
 });

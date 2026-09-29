@@ -1,5 +1,5 @@
-import { applyLexicon, tokenizeHebrewWords, type Lexicon } from "./lexicon";
-import { hasNiqqud, removeDisallowedDagesh } from "./niqqud";
+import { applyLexicon, matchWithPrefix, tokenizeHebrewWords, type Lexicon } from "./lexicon";
+import { hasNiqqud, removeDisallowedDagesh, stripNiqqud } from "./niqqud";
 
 const LONG_DASH = /\s*[–—]\s*/gu;
 const DIGITS = /\d+(?:[.,]\d+)*/gu;
@@ -20,6 +20,16 @@ export function prepareVoiceLine(line: string, lexicon: Lexicon): string {
 export function collectPointedWords(lines: readonly string[]): string[] {
   const words = lines.flatMap(tokenizeHebrewWords).filter(hasNiqqud);
   return [...new Set(words)];
+}
+
+/** Words from the avoid list that appear in the lines (with or without a prefix), in their bare form. */
+export function findAvoidedWords(lines: readonly string[], avoid: ReadonlySet<string>): string[] {
+  if (avoid.size === 0) return [];
+  const found = lines
+    .flatMap(tokenizeHebrewWords)
+    .map((word) => matchWithPrefix(stripNiqqud(word), (candidate) => (avoid.has(candidate) ? candidate : undefined))?.match)
+    .filter((word): word is string => word !== undefined);
+  return [...new Set(found)];
 }
 
 /** Human-readable (Hebrew) warnings for rule violations that cannot be fixed mechanically. */
