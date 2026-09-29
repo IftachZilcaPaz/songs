@@ -89,6 +89,11 @@ export function matchWithPrefix<T>(bare: string, find: (word: string) => T | und
   return undefined;
 }
 
+/** True when the bare token is one of the words, alone or after a one-letter prefix. */
+export function containsWord(bare: string, words: ReadonlySet<string>): boolean {
+  return matchWithPrefix(bare, (word) => (words.has(word) ? word : undefined)) !== undefined;
+}
+
 function lookup(bare: string, lexicon: Lexicon): string | undefined {
   const found = matchWithPrefix(bare, (word) => lexicon.get(word));
   return found && found.prefix + found.match;

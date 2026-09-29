@@ -38,6 +38,19 @@ When no spelling works, **אף אפשרות לא עובדת** adds the word to t
 
 **Adding a confirmed word for everyone:** add a line `מילה = מילה מנוקדת` to `rules/voice-lexicon.txt` after hearing it. The app rejects a line whose pointed form doesn't match the bare word.
 
+## Learning rounds
+
+Pronunciation improves in rounds, driven by ear:
+
+1. Render several songs and fix every word that sounds wrong (**תיקון הגייה**). Mark words no spelling can fix with **אף אפשרות לא עובדת**.
+2. Copy the collected data from **המילון שלי → העתקת המילון והיסטוריית התיקונים**.
+3. Fold it into `rules/`:
+   - `voice-lexicon.txt`: fixed spellings for words whose reading never changes.
+   - `context-words.txt`: words whose reading depends on gender, tense or meaning (לך, את, רצה). They never get a fixed spelling; stored personal spellings for them are ignored.
+   - `pronunciation-rules.md`: patterns found across fixes, given to every Claude call and winning over the original voice rules on conflicts.
+   - `avoid-words.txt`: words the engine cannot sing whatever the niqqud.
+4. Run `npm test`: `src/lib/hebrew/rules-files.test.ts` rejects malformed lines, a context word in the fixed lexicon, a word both fixed and avoided, and a forbidden dagesh.
+
 ## Setup
 
 ```bash
@@ -75,7 +88,7 @@ npm run build
 ## Structure
 
 ```
-rules/                      Hebrew voice rules + confirmed lexicon (read at runtime)
+rules/                      Voice rules, confirmed pronunciation rules, lexicon, context and avoid lists (read at runtime)
 src/app/api/lyrics          POST: text + variation -> Song (Claude)
 src/app/api/audio           POST: Song -> MP3 stream (ElevenLabs)
 src/app/api/pronunciation   POST: word + line -> alternative voice spellings (Claude)

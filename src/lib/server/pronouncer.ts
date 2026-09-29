@@ -14,7 +14,7 @@ export async function suggestPronunciations(word: string, line: string): Promise
 
   const rules = await getVoiceRules();
   const draft = await askClaude({
-    system: buildPronunciationSystemPrompt(rules.document, rules.lexicon),
+    system: buildPronunciationSystemPrompt(rules),
     user: buildPronunciationUserPrompt(word, line),
     schema: PronunciationDraftSchema,
     effort: "low",

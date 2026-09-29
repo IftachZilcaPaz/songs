@@ -1,6 +1,5 @@
 import "server-only";
 import { randomInt, randomUUID } from "node:crypto";
-import { mergeLexicons } from "@/lib/hebrew/lexicon";
 import { SongDraftSchema } from "@/lib/songs/draft";
 import { EmptySongError, finalizeSong } from "@/lib/songs/finalize";
 import { buildSystemPrompt, buildUserPrompt } from "@/lib/songs/prompt";
@@ -9,7 +8,7 @@ import { getVariation, type VariationId } from "@/lib/songs/variations";
 import { askClaude } from "./claude";
 import { getEnv } from "./env";
 import { PublicError } from "./http";
-import { getVoiceRules } from "./voice-rules";
+import { effectiveLexicon, getVoiceRules } from "./voice-rules";
 
 export interface WriteSongInput {
   readonly text: string;
@@ -26,7 +25,7 @@ export async function writeSong({ text, variationId, subjectGender, lexicon, avo
   const avoid = new Set([...rules.avoidWords, ...avoidWords]);
 
   const draft = await askClaude({
-    system: buildSystemPrompt(rules.document, rules.lexicon),
+    system: buildSystemPrompt(rules),
     user: buildUserPrompt(text, getVariation(variationId), subjectGender, [...avoid]),
     schema: SongDraftSchema,
     effort: getEnv().LYRICS_EFFORT,
@@ -37,7 +36,7 @@ export async function writeSong({ text, variationId, subjectGender, lexicon, avo
   try {
     return finalizeSong(draft, {
       variationId,
-      lexicon: mergeLexicons(rules.lexicon, new Map(lexicon)),
+      lexicon: effectiveLexicon(rules, lexicon),
       avoidWords: avoid,
       id: randomUUID(),
       seed: randomInt(MAX_SEED),

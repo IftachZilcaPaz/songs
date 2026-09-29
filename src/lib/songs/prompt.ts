@@ -14,15 +14,42 @@ const GENDER_INSTRUCTIONS: Readonly<Record<SubjectGender, string>> = {
 const SPOKEN_HEBREW_RULE =
   "Point words the way most Israelis say them in everyday speech today, not by normative grammar. For example, ב, כ, פ at the start of a word often stay hard after a prefix in speech: ובבית is said וּבַּבַּיִת (u-ba-BA-yit), not וּבַבַּיִת (u-va-BA-yit).";
 
+/** The rule sources every Claude call receives. */
+export interface PromptRules {
+  /** The original Hebrew voice rules document, given verbatim. */
+  readonly document: string;
+  /** Pronunciation rules confirmed by ear; they win over the document on conflicts. */
+  readonly pronunciationRules: string;
+  /** Confirmed-by-ear spellings. */
+  readonly lexicon: Lexicon;
+}
+
 function formatLexicon(lexicon: Lexicon): string {
   return [...lexicon].map(([bare, pointed]) => `${bare} = ${pointed}`).join("\n");
+}
+
+/** Identical in every request, so it stays inside the cached system prompt. */
+function rulesBlock({ document, pronunciationRules, lexicon }: PromptRules): string {
+  return `<hebrew_voice_rules>
+${document.trim()}
+</hebrew_voice_rules>
+
+<confirmed_pronunciation_rules>
+Learned by ear from real renders of this singing engine. Where they conflict with the voice rules above, these win.
+${pronunciationRules.trim()}
+</confirmed_pronunciation_rules>
+
+<confirmed_lexicon>
+Always use these spellings in voice lines. A one-letter prefix stays in front of the word.
+${formatLexicon(lexicon)}
+</confirmed_lexicon>`;
 }
 
 /**
  * The system prompt is identical for every request (the variation and the
  * user's text go in the user turn), so it is served from the prompt cache.
  */
-export function buildSystemPrompt(voiceRules: string, lexicon: Lexicon): string {
+export function buildSystemPrompt(rules: PromptRules): string {
   return `You are a professional Hebrew songwriter. You turn free text written by a user (a story, a description of a person, a greeting, shared memories) into an original Hebrew song that an AI music engine will sing.
 
 <content>
@@ -54,14 +81,7 @@ export function buildSystemPrompt(voiceRules: string, lexicon: Lexicon): string 
 - The JSON format described inside the rules document is superseded by this app's response schema. Every other rule in the document applies.
 </output>
 
-<hebrew_voice_rules>
-${voiceRules.trim()}
-</hebrew_voice_rules>
-
-<confirmed_lexicon>
-Always use these spellings in voice lines. A one-letter prefix stays in front of the word.
-${formatLexicon(lexicon)}
-</confirmed_lexicon>`;
+${rulesBlock(rules)}`;
 }
 
 function formatAvoidWords(avoidWords: readonly string[]): string {
@@ -96,7 +116,7 @@ Write the song in Hebrew.`;
 }
 
 /** Request-independent, so it is served from the prompt cache. */
-export function buildPronunciationSystemPrompt(voiceRules: string, lexicon: Lexicon): string {
+export function buildPronunciationSystemPrompt(rules: PromptRules): string {
   return `You fix Hebrew pronunciation for an AI singing engine. A listener heard one word of a sung line pronounced wrongly (wrong stress, wrong vowel, or the wrong gender form). Offer three or four alternative voice spellings of that word, so the listener can hear each one sung and pick the best.
 
 <requirements>
@@ -109,13 +129,7 @@ export function buildPronunciationSystemPrompt(voiceRules: string, lexicon: Lexi
 - \`say_as\` is a Latin transliteration with the stressed syllable in capitals, for example "shak-shu-KA".
 </requirements>
 
-<hebrew_voice_rules>
-${voiceRules.trim()}
-</hebrew_voice_rules>
-
-<confirmed_lexicon>
-${formatLexicon(lexicon)}
-</confirmed_lexicon>`;
+${rulesBlock(rules)}`;
 }
 
 export function buildPronunciationUserPrompt(word: string, line: string): string {
@@ -129,7 +143,7 @@ ${word}
 }
 
 /** Request-independent, so it is served from the prompt cache. */
-export function buildReviewSystemPrompt(voiceRules: string, lexicon: Lexicon): string {
+export function buildReviewSystemPrompt(rules: PromptRules): string {
   return `You proofread the pronunciation of Hebrew lyrics before an AI singing engine sings them. The lyrics are final: you change niqqud only, never letters, words, spaces or punctuation. Rendering a song costs money, so every mispronunciation you catch now saves a full re-render.
 
 <what_to_fix>
@@ -147,13 +161,7 @@ export function buildReviewSystemPrompt(voiceRules: string, lexicon: Lexicon): s
 - If nothing needs fixing, return an empty list. Do not change lines that are already fine.
 </output>
 
-<hebrew_voice_rules>
-${voiceRules.trim()}
-</hebrew_voice_rules>
-
-<confirmed_lexicon>
-${formatLexicon(lexicon)}
-</confirmed_lexicon>`;
+${rulesBlock(rules)}`;
 }
 
 export function buildReviewUserPrompt(
