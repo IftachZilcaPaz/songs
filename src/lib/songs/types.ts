@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { stripNiqqud } from "@/lib/hebrew/niqqud";
 import { VARIATION_IDS, type VariationId } from "./variations";
 
 export const SECTION_KINDS = ["verse", "pre_chorus", "chorus", "bridge", "outro"] as const;
@@ -45,10 +46,20 @@ export interface Song {
 export const INPUT_TEXT_MIN = 10;
 export const INPUT_TEXT_MAX = 5000;
 
+export const MAX_PERSONAL_LEXICON_ENTRIES = 200;
+
+/** A `[bare, pointed]` pair whose pointed form keeps exactly the same letters. */
+export const LexiconEntrySchema = z
+  .tuple([z.string().trim().min(1).max(40), z.string().trim().min(1).max(80)])
+  .refine(([bare, pointed]) => stripNiqqud(pointed) === bare, "pointed form must match the bare word");
+export type LexiconEntry = z.infer<typeof LexiconEntrySchema>;
+
 export const LyricsRequestSchema = z.object({
   text: z.string().trim().min(INPUT_TEXT_MIN).max(INPUT_TEXT_MAX),
   variationId: z.enum(VARIATION_IDS),
   subjectGender: z.enum(SUBJECT_GENDERS).default("unspecified"),
+  /** Spellings the user picked by ear; applied to every new song. */
+  lexicon: z.array(LexiconEntrySchema).max(MAX_PERSONAL_LEXICON_ENTRIES).default([]),
 });
 export type LyricsRequest = z.input<typeof LyricsRequestSchema>;
 
@@ -68,6 +79,27 @@ export const AudioRequestSchema = z.object({
 });
 export type AudioRequest = z.input<typeof AudioRequestSchema>;
 export type ValidAudioRequest = z.output<typeof AudioRequestSchema>;
+
+export const PronunciationRequestSchema = z.object({
+  /** The word as it appears in the voice line (may carry niqqud). */
+  word: z.string().trim().min(1).max(40),
+  /** The full voice line, for context (gender, meaning). */
+  line: z.string().trim().min(1).max(200),
+});
+export type PronunciationRequest = z.input<typeof PronunciationRequestSchema>;
+
+export interface PronunciationOption {
+  /** The word pointed for the voice engine; same letters as the original. */
+  readonly spelling: string;
+  /** Short Hebrew explanation of how this spelling should sound. */
+  readonly hint: string;
+  /** Latin transliteration with the stressed syllable in capitals, e.g. "shak-shu-KA". */
+  readonly sayAs: string;
+}
+
+export interface PronunciationResponse {
+  readonly options: readonly PronunciationOption[];
+}
 
 /** Header carrying the optional access code that guards the paid APIs. */
 export const ACCESS_CODE_HEADER = "x-access-code";

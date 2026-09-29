@@ -4,6 +4,9 @@ import {
   type AudioRequest,
   type LyricsRequest,
   type LyricsResponse,
+  type PronunciationOption,
+  type PronunciationRequest,
+  type PronunciationResponse,
   type Song,
 } from "@/lib/songs/types";
 
@@ -57,6 +60,15 @@ export async function requestAudio(input: AudioRequest, accessCode: string, sign
   const audio = await response.blob();
   if (audio.size === 0) throw new ClientApiError("התקבל קובץ אודיו ריק. נסו שוב.", response.status);
   return audio;
+}
+
+export async function requestPronunciationOptions(
+  input: PronunciationRequest,
+  accessCode: string,
+  signal?: AbortSignal,
+): Promise<readonly PronunciationOption[]> {
+  const response = await post("/api/pronunciation", input, accessCode, signal);
+  return ((await response.json()) as PronunciationResponse).options;
 }
 
 export function isAbortError(error: unknown): boolean {

@@ -15,6 +15,24 @@ export function tokenizeHebrewWords(text: string): string[] {
   return text.match(WORD) ?? [];
 }
 
+export interface TextSegment {
+  readonly text: string;
+  readonly isWord: boolean;
+}
+
+/** Splits text into Hebrew words and the separators between them; joining the segments restores the text. */
+export function splitWords(text: string): TextSegment[] {
+  const segments: TextSegment[] = [];
+  let last = 0;
+  for (const match of text.matchAll(WORD)) {
+    if (match.index > last) segments.push({ text: text.slice(last, match.index), isWord: false });
+    segments.push({ text: match[0], isWord: true });
+    last = match.index + match[0].length;
+  }
+  if (last < text.length) segments.push({ text: text.slice(last), isWord: false });
+  return segments;
+}
+
 /**
  * Parses the lexicon file format: one `bare = pointed` entry per line.
  * Blank lines and lines starting with `#` are ignored.

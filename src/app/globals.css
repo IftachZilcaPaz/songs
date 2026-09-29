@@ -406,3 +406,150 @@ ul.notice {
     transition: none;
   }
 }
+
+.word {
+  display: inline;
+  padding: 0 2px;
+  margin: 0;
+  border: 0;
+  border-bottom: 1px dashed var(--text-muted);
+  border-radius: 4px;
+  background: transparent;
+  font: inherit;
+  line-height: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.word:hover,
+.word:focus-visible {
+  background: var(--accent-soft);
+  outline: none;
+}
+
+.word[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-bottom-color: transparent;
+}
+
+.fixer {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--surface-muted);
+}
+
+.fixer__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.fixer__header h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.fixer__word {
+  color: var(--accent);
+}
+
+.fixer__line {
+  margin: 0;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.fixer__settings {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+}
+
+.option {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.option[data-current="true"] {
+  border-style: dashed;
+}
+
+.option__text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.option__spelling {
+  font-size: 1.35rem;
+  font-weight: 600;
+}
+
+.option__say {
+  justify-self: start;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.option__hint {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.option__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.lexicon {
+  margin-top: 24px;
+}
+
+.lexicon summary {
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.lexicon__list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lexicon__item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.lexicon__pointed {
+  font-weight: 600;
+}

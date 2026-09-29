@@ -34,6 +34,11 @@ export function buildSystemPrompt(voiceRules: string, lexicon: Lexicon): string 
 - Parallel lines have close syllable counts.
 </structure>
 
+<pronunciation_pitfalls>
+- Present-tense verbs and adjectives ending in ה sound different in masculine and feminine (עולֶה / עולָה, רואֶה / רואָה, קונֶה / קונָה). The engine guesses, and often guesses feminine. Always point the final syllable of such a word to match its grammatical subject in that line (ריח עולֶה, היא עולָה), which is not necessarily the song's main person.
+- Food names, loanwords and slang that the engine may not know tend to get stressed on the first syllable. When the stress is on the last syllable, point only that syllable, as in rule 4 of the voice rules (שקשוקָה).
+</pronunciation_pitfalls>
+
 <output>
 - \`sections[].lines\` hold the voice version of each line, prepared by the Hebrew voice rules below. The app derives the display version by stripping all niqqud, so write only the voice version and add niqqud only where the rules require it.
 - \`names\`: every person's name exactly as it appears in the voice lines, spelled identically every time.
@@ -67,4 +72,36 @@ ${text}
 </user_text>
 
 Write the song in Hebrew.`;
+}
+
+/** Request-independent, so it is served from the prompt cache. */
+export function buildPronunciationSystemPrompt(voiceRules: string, lexicon: Lexicon): string {
+  return `You fix Hebrew pronunciation for an AI singing engine. A listener heard one word of a sung line pronounced wrongly (wrong stress, wrong vowel, or the wrong gender form). Offer three or four alternative voice spellings of that word, so the listener can hear each one sung and pick the best.
+
+<requirements>
+- Every option keeps exactly the same letters as the original word, including any prefix letters. Only niqqud changes.
+- Read the line to understand the intended meaning, grammatical gender and stress. The first option is your best guess at the intended reading.
+- The options must differ in a way the engine can hear: for example, point only the stressed syllable (rule 4 of the voice rules), point the whole word, point only the vowel that fixes the gender, or mark the other plausible reading.
+- Never use a dagesh outside ב, כ, פ. Shuruk (וּ) is allowed.
+- \`hint\` is up to eight plain Hebrew words describing how the option should sound, for example "הטעמה בהברה האחרונה" or "לשון זכר".
+- \`say_as\` is a Latin transliteration with the stressed syllable in capitals, for example "shak-shu-KA".
+</requirements>
+
+<hebrew_voice_rules>
+${voiceRules.trim()}
+</hebrew_voice_rules>
+
+<confirmed_lexicon>
+${formatLexicon(lexicon)}
+</confirmed_lexicon>`;
+}
+
+export function buildPronunciationUserPrompt(word: string, line: string): string {
+  return `<line>
+${line}
+</line>
+
+<word_heard_wrong>
+${word}
+</word_heard_wrong>`;
 }

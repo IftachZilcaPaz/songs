@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { errorMessage, isAbortError, requestLyrics } from "@/lib/client/api";
-import type { Song, SubjectGender } from "@/lib/songs/types";
+import type { LexiconEntry, Song, SubjectGender } from "@/lib/songs/types";
 import type { VariationId } from "@/lib/songs/variations";
 
 export type SongResult =
@@ -20,10 +20,15 @@ export interface SongBrief {
  * independent request, so results appear as soon as each one is ready and
  * a failure affects only its own card.
  */
-export function useSongBatch(accessCode: string) {
+export function useSongBatch(accessCode: string, lexicon: readonly LexiconEntry[]) {
   const [results, setResults] = useState<ReadonlyMap<VariationId, SongResult>>(new Map());
   const controllers = useRef(new Map<VariationId, AbortController>());
   const lastBrief = useRef<SongBrief | null>(null);
+  // Read at request time, so a regenerated song uses the spellings picked since.
+  const latestLexicon = useRef(lexicon);
+  useEffect(() => {
+    latestLexicon.current = lexicon;
+  }, [lexicon]);
 
   const setResult = useCallback((id: VariationId, result: SongResult) => {
     setResults((previous) => new Map(previous).set(id, result));
@@ -37,7 +42,11 @@ export function useSongBatch(accessCode: string) {
       setResult(id, { status: "loading" });
 
       try {
-        const song = await requestLyrics({ ...brief, variationId: id }, accessCode, controller.signal);
+        const song = await requestLyrics(
+          { ...brief, variationId: id, lexicon: [...latestLexicon.current] },
+          accessCode,
+          controller.signal,
+        );
         setResult(id, { status: "done", song });
       } catch (error) {
         if (!isAbortError(error)) setResult(id, { status: "error", message: errorMessage(error) });
@@ -66,6 +75,9 @@ export function useSongBatch(accessCode: string) {
     [run],
   );
 
+  /** Replaces a finished song after the user edits it (e.g. a pronunciation fix). */
+  const replaceSong = useCallback((id: VariationId, song: Song) => setResult(id, { status: "done", song }), [setResult]);
+
   useEffect(() => {
     const active = controllers.current;
     return () => active.forEach((controller) => controller.abort());
@@ -73,5 +85,5 @@ export function useSongBatch(accessCode: string) {
 
   const isBusy = [...results.values()].some((result) => result.status === "loading");
 
-  return { results, generate, regenerate, isBusy };
+  return { results, generate, regenerate, replaceSong, isBusy };
 }

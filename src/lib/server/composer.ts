@@ -37,16 +37,28 @@ export async function composeSong(chunks: readonly MusicChunk[], signal?: AbortS
   );
 }
 
+/** ElevenLabs reports the precise cause in `detail.status` / `detail.code`. */
+function errorDetail(error: ElevenLabsError): string {
+  const detail = (error.body as { detail?: { status?: unknown; code?: unknown } } | undefined)?.detail;
+  return [detail?.status, detail?.code].filter((value): value is string => typeof value === "string").join(" ");
+}
+
 /** Maps ElevenLabs errors to user-facing errors; unknown errors fall through. */
 export function mapComposerError(error: unknown): PublicError | undefined {
   if (error instanceof ElevenLabsTimeoutError) return new PublicError(504, "יצירת האודיו לקחה יותר מדי זמן. נסו שיר קצר יותר.");
   if (!(error instanceof ElevenLabsError)) return undefined;
 
   console.error("[composer] ElevenLabs error", error.statusCode, error.message);
+  const detail = errorDetail(error);
+  if (detail.includes("missing_permissions")) {
+    return new PublicError(503, "למפתח של ElevenLabs חסרה הרשאת Music Generation.");
+  }
   switch (error.statusCode) {
     case 401:
     case 403:
-      return new PublicError(503, "שירות האודיו לא מוגדר כראוי.");
+      return new PublicError(503, "המפתח של ElevenLabs לא תקין.");
+    case 402:
+      return new PublicError(503, "יצירת מוזיקה ב-ElevenLabs דורשת מנוי בתשלום או קרדיטים נוספים.");
     case 422:
       return new PublicError(422, "שירות האודיו דחה את המילים. נסו לערוך אותן ולנסות שוב.");
     case 429:

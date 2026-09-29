@@ -10,7 +10,9 @@ import {
   type VariationId,
 } from "@/lib/songs/variations";
 import { ChipGroup, MultiChipGroup, type ChipOption } from "./ChipGroup";
+import { PersonalLexicon } from "./PersonalLexicon";
 import { SongCard } from "./SongCard";
+import { usePersonalLexicon } from "./usePersonalLexicon";
 import { useSongBatch } from "./useSongBatch";
 
 const ACCESS_CODE_STORAGE_KEY = "songs.accessCode";
@@ -61,7 +63,8 @@ export function SongStudio({ audioEnabled, accessCodeRequired }: SongStudioProps
   const [variationIds, setVariationIds] = useState<readonly VariationId[]>(DEFAULT_VARIATION_IDS);
   const [vocal, setVocal] = useState<Vocal>("auto");
   const [accessCode, setAccessCode] = useState("");
-  const { results, generate, regenerate, isBusy } = useSongBatch(accessCode);
+  const lexicon = usePersonalLexicon();
+  const { results, generate, regenerate, replaceSong, isBusy } = useSongBatch(accessCode, lexicon.entries);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrate from browser-only storage after mount
@@ -146,6 +149,8 @@ export function SongStudio({ audioEnabled, accessCodeRequired }: SongStudioProps
               variation={getVariation(id)}
               result={result}
               onRegenerate={() => regenerate(id)}
+              onSongChange={(song) => replaceSong(id, song)}
+              onRememberSpelling={lexicon.save}
               audioEnabled={audioEnabled}
               vocal={vocal}
               accessCode={accessCode}
@@ -153,6 +158,8 @@ export function SongStudio({ audioEnabled, accessCodeRequired }: SongStudioProps
           ))}
         </section>
       )}
+
+      <PersonalLexicon entries={lexicon.entries} onRemove={lexicon.remove} />
     </main>
   );
 }

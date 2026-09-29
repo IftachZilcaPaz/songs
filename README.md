@@ -20,7 +20,11 @@ The model writes only the **voice** version of each line. The server then applie
 
 Stress placement, rhyme on stressed syllables and balanced lines are handled by the model through the rules document, which goes into the system prompt verbatim (and is prompt-cached).
 
-**Adding a confirmed word:** add a line `מילה = מילה מנוקדת` to `rules/voice-lexicon.txt` after hearing it. The app rejects a line whose pointed form doesn't match the bare word.
+## Fixing pronunciation by ear
+
+On a song card, **תיקון הגייה** turns every word into a button. Clicking a word that was sung wrongly asks Claude for three or four alternative voice spellings (same letters, different niqqud). Each option can be heard sung in its line, next to the current spelling. The chosen spelling is applied to the line or to the whole song, and can be remembered in **המילון שלי**. That personal dictionary is kept in the browser and sent with every new song, so a word fixed once stays fixed.
+
+**Adding a confirmed word for everyone:** add a line `מילה = מילה מנוקדת` to `rules/voice-lexicon.txt` after hearing it. The app rejects a line whose pointed form doesn't match the bare word.
 
 ## Setup
 
@@ -62,6 +66,7 @@ npm run build
 rules/                      Hebrew voice rules + confirmed lexicon (read at runtime)
 src/app/api/lyrics          POST: text + variation -> Song (Claude)
 src/app/api/audio           POST: Song -> MP3 stream (ElevenLabs)
+src/app/api/pronunciation   POST: word + line -> alternative voice spellings (Claude)
 src/lib/hebrew              Pure niqqud / lexicon / voice-line utilities
 src/lib/songs               Variation catalog, API contract, prompts, draft -> Song
 src/lib/music               Song -> provider-neutral composition plan
