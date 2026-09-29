@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { splitWords } from "@/lib/hebrew/lexicon";
 import { applyWordFix, type WordLocation } from "@/lib/songs/edit";
-import { SECTION_LABELS, type Song, type SongSection, type Vocal } from "@/lib/songs/types";
+import { SECTION_LABELS, type AudioMode, type Song, type SongSection, type Vocal } from "@/lib/songs/types";
 import type { Variation } from "@/lib/songs/variations";
 import { AudioStatus } from "./AudioStatus";
 import { PronunciationFixer, type PronunciationChoice } from "./PronunciationFixer";
@@ -222,24 +222,39 @@ const AUDIO_LOADING_TEXT = {
 
 function SongAudio({ song, vocal, accessCode }: { readonly song: Song; readonly vocal: Vocal; readonly accessCode: string }) {
   const { state, render } = useAudioRender(accessCode);
+  // The song object is replaced on every pronunciation fix, so identity tells us the audio is outdated.
+  const [renderedSong, setRenderedSong] = useState<Song | null>(null);
   const loading = state.status === "loading";
   const suffix = state.status === "ready" && state.mode === "preview" ? " (דוגמה)" : "";
+  const outdated = state.status === "ready" && renderedSong !== song;
+
+  const renderSong = (mode: AudioMode) => {
+    setRenderedSong(song);
+    void render(songAudioRequest(song, vocal, mode));
+  };
 
   return (
     <div className="audio">
       <div className="card__actions">
-        <button type="button" className="button button--secondary" disabled={loading} onClick={() => render(songAudioRequest(song, vocal, "preview"))}>
+        <button type="button" className="button button--secondary" disabled={loading} onClick={() => renderSong("preview")}>
           השמעת דוגמה קצרה
         </button>
-        <button type="button" className="button" disabled={loading} onClick={() => render(songAudioRequest(song, vocal, "full"))}>
-          יצירת השיר המלא
+        <button type="button" className="button" disabled={loading} onClick={() => renderSong("full")}>
+          {outdated ? "יצירה מחדש עם התיקונים" : "יצירת השיר המלא"}
         </button>
       </div>
-      <p className="audio__hint">כדאי להתחיל בדוגמה: שומעים את השם ואת המילים הבעייתיות לפני שמייצרים את כל השיר.</p>
+      {outdated ? (
+        <p className="notice notice--warning">
+          המילים השתנו מאז שההקלטה נוצרה. אפשר להמשיך לתקן מילים, ובסוף ליצור את השיר מחדש פעם אחת.
+        </p>
+      ) : (
+        <p className="audio__hint">כדאי להתחיל בדוגמה: שומעים את השם ואת המילים הבעייתיות לפני שמייצרים את כל השיר.</p>
+      )}
       <AudioStatus
         state={state}
         loadingText={state.status === "loading" ? AUDIO_LOADING_TEXT[state.mode] : ""}
         fileName={`${song.title}${suffix}.mp3`}
+        autoPlay={!outdated}
       />
     </div>
   );
