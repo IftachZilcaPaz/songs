@@ -1,11 +1,16 @@
 "use client";
 
 import { useId } from "react";
+import type { Tone } from "./theme";
 
 export interface ChipOption<T extends string> {
   readonly value: T;
   readonly label: string;
   readonly hint?: string;
+  /** Emoji shown in a colored badge. */
+  readonly icon?: string;
+  /** Pastel tone from theme.ts, used for the badge and the selected state. */
+  readonly tone?: Tone;
 }
 
 interface ChipFieldsetProps<T extends string> {
@@ -27,7 +32,7 @@ function ChipFieldset<T extends string>({ legend, options, type, isChecked, isDi
         {options.map((option) => {
           const checked = isChecked(option.value);
           return (
-            <label key={option.value} className="chip" data-checked={checked}>
+            <label key={option.value} className="chip" data-checked={checked} data-tone={option.tone} data-rich={Boolean(option.icon)}>
               <input
                 type={type}
                 name={name}
@@ -36,8 +41,15 @@ function ChipFieldset<T extends string>({ legend, options, type, isChecked, isDi
                 disabled={isDisabled?.(option.value)}
                 onChange={() => onToggle(option.value)}
               />
-              <span className="chip__label">{option.label}</span>
-              {option.hint && <span className="chip__hint">{option.hint}</span>}
+              {option.icon && (
+                <span className="chip__icon" aria-hidden="true">
+                  {option.icon}
+                </span>
+              )}
+              <span className="chip__text">
+                <span className="chip__label">{option.label}</span>
+                {option.hint && <span className="chip__hint">{option.hint}</span>}
+              </span>
             </label>
           );
         })}

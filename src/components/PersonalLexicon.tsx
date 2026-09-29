@@ -16,7 +16,6 @@ interface PersonalLexiconProps {
 export function PersonalLexicon({ entries, avoidWords, history, onRemove, onUnavoid }: PersonalLexiconProps) {
   const [copied, setCopied] = useState(false);
   const total = entries.length + avoidWords.length;
-  if (total === 0 && history.length === 0) return null;
 
   const copy = async () => {
     try {
@@ -29,15 +28,25 @@ export function PersonalLexicon({ entries, avoidWords, history, onRemove, onUnav
   };
 
   return (
-    <details className="panel lexicon">
-      <summary>המילון שלי ({total.toLocaleString("he-IL")})</summary>
+    <section id="dictionary" className="panel lexicon" aria-labelledby="dictionary-title">
+      <h2 id="dictionary-title" className="panel__title">
+        <span className="panel__icon" aria-hidden="true">
+          📖
+        </span>
+        המילון שלי
+        <span className="panel__count">{total.toLocaleString("he-IL")}</span>
+      </h2>
 
-      <div className="card__actions">
-        <button type="button" className="button button--ghost" onClick={copy}>
-          {copied ? "הועתק" : "העתקת המילון והיסטוריית התיקונים"}
-        </button>
-        <span className="field__meta">{history.length.toLocaleString("he-IL")} תיקונים נשמרו</span>
-      </div>
+      {total === 0 && history.length === 0 ? (
+        <p className="empty">עוד אין כאן מילים. תקנו הגייה בשיר, והכתיבים שתבחרו יופיעו כאן.</p>
+      ) : (
+        <div className="card__actions">
+          <button type="button" className="button button--ghost" onClick={copy}>
+            {copied ? "הועתק" : "העתקת המילון והיסטוריית התיקונים"}
+          </button>
+          <span className="field__meta">{history.length.toLocaleString("he-IL")} תיקונים נשמרו</span>
+        </div>
+      )}
 
       {entries.length > 0 && (
         <section className="lexicon__group">
@@ -72,6 +81,6 @@ export function PersonalLexicon({ entries, avoidWords, history, onRemove, onUnav
           </ul>
         </section>
       )}
-    </details>
+    </section>
   );
 }

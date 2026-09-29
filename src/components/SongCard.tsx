@@ -9,6 +9,7 @@ import type { Variation } from "@/lib/songs/variations";
 import { AudioStatus } from "./AudioStatus";
 import { PronunciationFixer, type PronunciationChoice } from "./PronunciationFixer";
 import { useHebrewSpeech } from "./useHebrewSpeech";
+import { getVariationTheme } from "./theme";
 import type { ReviewState, SongResult } from "./useSongBatch";
 import { songAudioRequest, useAudioRender } from "./useSongAudio";
 
@@ -33,10 +34,16 @@ interface SongCardProps extends SongContext {
 }
 
 export function SongCard({ variation, result, onRegenerate, ...context }: SongCardProps) {
+  const theme = getVariationTheme(variation.id);
   return (
-    <article className="card" aria-busy={result.status === "loading"}>
+    <article className="card" data-tone={theme.tone} aria-busy={result.status === "loading"}>
       <header className="card__header">
-        <span className="card__tag">{variation.label}</span>
+        <span className="card__tag">
+          <span className="card__tag-icon" aria-hidden="true">
+            {theme.icon}
+          </span>
+          {variation.label}
+        </span>
         {result.status === "done" && <h2 className="card__title">{result.song.title}</h2>}
       </header>
 
