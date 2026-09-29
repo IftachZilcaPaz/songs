@@ -35,5 +35,6 @@ describe("rules files", () => {
   it("apply the confirmed spellings from this learning round", () => {
     expect(applyLexicon("ריח של שקשוקה ובלב מרתון", lexicon)).toBe("ריח של שַקְשוּקה ובַּלֵב מַרָתוֹן");
     expect(containsWord("ולך", contextWords)).toBe(true);
+    expect(applyLexicon("ובבוקר היא רצה", lexicon)).toBe("ובַּבּוֹקֶר היא רצה");
   });
 });
