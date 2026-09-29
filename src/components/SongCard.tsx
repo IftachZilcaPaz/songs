@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { splitWords } from "@/lib/hebrew/lexicon";
-import { applyWordFix, type WordLocation } from "@/lib/songs/edit";
+import { applyWordFix, getWordAt, type WordLocation } from "@/lib/songs/edit";
+import type { FixRecord } from "@/lib/songs/memory-export";
 import { SECTION_LABELS, type AudioMode, type Song, type SongSection, type Vocal } from "@/lib/songs/types";
 import type { Variation } from "@/lib/songs/variations";
 import { AudioStatus } from "./AudioStatus";
@@ -19,6 +20,8 @@ interface SongContext {
   readonly onSongChange: (song: Song) => void;
   /** Remembers a spelling for future songs. */
   readonly onRememberSpelling: (spelling: string) => void;
+  /** Logs a fix (before, after, line) for later review. */
+  readonly onFixRecorded: (fix: FixRecord) => void;
   /** Keeps a word the engine cannot sing out of future songs. */
   readonly onAvoidWord: (word: string) => void;
 }
@@ -67,7 +70,7 @@ function lyricsAsText(song: Song): string {
 const sameLocation = (a: WordLocation | null, b: WordLocation) =>
   a !== null && a.sectionIndex === b.sectionIndex && a.lineIndex === b.lineIndex && a.wordIndex === b.wordIndex;
 
-function SongBody({ song, review, onRegenerate, onSongChange, onRememberSpelling, onAvoidWord, ...audio }: SongBodyProps) {
+function SongBody({ song, review, onRegenerate, onSongChange, onRememberSpelling, onFixRecorded, onAvoidWord, ...audio }: SongBodyProps) {
   // Edits and paid audio wait for the pronunciation review, which may still change the lyrics.
   const reviewing = review.status === "running";
   const [showVoice, setShowVoice] = useState(false);
@@ -91,8 +94,11 @@ function SongBody({ song, review, onRegenerate, onSongChange, onRememberSpelling
   };
 
   const applyChoice = (location: WordLocation, { spelling, scope, remember }: PronunciationChoice) => {
+    const before = getWordAt(song, location);
+    const line = song.sections[location.sectionIndex]?.displayLines[location.lineIndex];
     onSongChange(applyWordFix(song, location, spelling, scope));
     if (remember) onRememberSpelling(spelling);
+    if (before !== undefined && line !== undefined) onFixRecorded({ before, after: spelling, line });
     setSelected(null);
   };
 

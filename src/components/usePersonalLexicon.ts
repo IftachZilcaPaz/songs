@@ -3,6 +3,7 @@
 import { useCallback } from "react";
 import { asBareWord } from "@/lib/hebrew/lexicon";
 import { stripNiqqud } from "@/lib/hebrew/niqqud";
+import type { FixRecord } from "@/lib/songs/memory-export";
 import { MAX_AVOID_WORDS, MAX_PERSONAL_LEXICON_ENTRIES, type LexiconEntry } from "@/lib/songs/types";
 import { useStoredList } from "./useStoredList";
 
@@ -16,6 +17,14 @@ function isEntry(value: unknown): value is LexiconEntry {
   );
 }
 
+const MAX_HISTORY = 500;
+
+function isFixRecord(value: unknown): value is FixRecord {
+  if (typeof value !== "object" || value === null) return false;
+  const record = value as Record<string, unknown>;
+  return typeof record.before === "string" && typeof record.after === "string" && typeof record.line === "string";
+}
+
 function isAvoidWord(value: unknown): value is string {
   return typeof value === "string" && asBareWord(value) === value;
 }
@@ -27,6 +36,8 @@ function isAvoidWord(value: unknown): value is string {
 export function usePersonalLexicon() {
   const spellings = useStoredList("songs.lexicon", isEntry, MAX_PERSONAL_LEXICON_ENTRIES);
   const avoided = useStoredList("songs.avoidWords", isAvoidWord, MAX_AVOID_WORDS);
+  const history = useStoredList("songs.fixHistory", isFixRecord, MAX_HISTORY);
+  const updateHistory = history.update;
   const updateSpellings = spellings.update;
   const updateAvoided = avoided.update;
 
@@ -38,6 +49,9 @@ export function usePersonalLexicon() {
     },
     [updateSpellings, updateAvoided],
   );
+
+  /** Logs every fix, remembered or not, so patterns can later become rules. */
+  const record = useCallback((fix: FixRecord) => updateHistory((previous) => [...previous, fix]), [updateHistory]);
 
   const remove = useCallback(
     (bare: string) => updateSpellings((previous) => previous.filter(([word]) => word !== bare)),
@@ -59,5 +73,14 @@ export function usePersonalLexicon() {
     [updateAvoided],
   );
 
-  return { entries: spellings.items, avoidWords: avoided.items, save, remove, avoid, unavoid };
+  return {
+    entries: spellings.items,
+    avoidWords: avoided.items,
+    history: history.items,
+    save,
+    remove,
+    avoid,
+    unavoid,
+    record,
+  };
 }

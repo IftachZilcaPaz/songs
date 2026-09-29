@@ -152,6 +152,7 @@ export function SongStudio({ audioEnabled, accessCodeRequired }: SongStudioProps
               onRegenerate={() => regenerate(id)}
               onSongChange={(song) => replaceSong(id, song)}
               onRememberSpelling={lexicon.save}
+              onFixRecorded={lexicon.record}
               onAvoidWord={lexicon.avoid}
               audioEnabled={audioEnabled}
               vocal={vocal}
@@ -164,6 +165,7 @@ export function SongStudio({ audioEnabled, accessCodeRequired }: SongStudioProps
       <PersonalLexicon
         entries={lexicon.entries}
         avoidWords={lexicon.avoidWords}
+        history={lexicon.history}
         onRemove={lexicon.remove}
         onUnavoid={lexicon.unavoid}
       />
