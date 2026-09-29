@@ -78,6 +78,11 @@ export async function requestReview(input: ReviewRequest, accessCode: string, si
   return (await response.json()) as ReviewResponse;
 }
 
+/** Resolves when the access code is accepted; throws a ClientApiError otherwise. */
+export async function verifyAccessCode(accessCode: string): Promise<void> {
+  await post("/api/access", {}, accessCode);
+}
+
 export function isAbortError(error: unknown): boolean {
   return error instanceof DOMException && error.name === "AbortError";
 }

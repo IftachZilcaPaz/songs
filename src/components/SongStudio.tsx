@@ -9,7 +9,9 @@ import {
   VARIATIONS,
   type VariationId,
 } from "@/lib/songs/variations";
+import { AccessGate } from "./AccessGate";
 import { ChipGroup, MultiChipGroup, type ChipOption } from "./ChipGroup";
+import { DiscoverBanner } from "./DiscoverBanner";
 import { Hero } from "./Hero";
 import { PersonalLexicon } from "./PersonalLexicon";
 import { Sidebar } from "./Sidebar";
@@ -68,37 +70,49 @@ export function SongStudio({ audioEnabled, accessCodeRequired }: SongStudioProps
   const [variationIds, setVariationIds] = useState<readonly VariationId[]>(DEFAULT_VARIATION_IDS);
   const [vocal, setVocal] = useState<Vocal>("auto");
   const [accessCode, setAccessCode] = useState("");
+  // "checking" until browser storage is read, so a returning user never sees the entry screen flash.
+  const [gate, setGate] = useState<"checking" | "locked" | "open">(accessCodeRequired ? "checking" : "open");
   const lexicon = usePersonalLexicon();
   const memory = useMemo(() => ({ lexicon: lexicon.entries, avoidWords: lexicon.avoidWords }), [lexicon.entries, lexicon.avoidWords]);
   const { results, generate, regenerate, replaceSong, isBusy } = useSongBatch(accessCode, memory);
 
   useEffect(() => {
+    if (!accessCodeRequired) return;
+    const stored = readStoredAccessCode();
     // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrate from browser-only storage after mount
-    if (accessCodeRequired) setAccessCode(readStoredAccessCode());
+    setAccessCode(stored);
+    setGate(stored ? "open" : "locked");
   }, [accessCodeRequired]);
+
+  const unlock = (code: string) => {
+    storeAccessCode(code);
+    setAccessCode(code);
+    setGate("open");
+  };
 
   const trimmedLength = text.trim().length;
   const canSubmit =
     trimmedLength >= INPUT_TEXT_MIN &&
     trimmedLength <= INPUT_TEXT_MAX &&
     variationIds.length > 0 &&
-    (!accessCodeRequired || accessCode.length > 0) &&
     !isBusy;
 
   const onSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!canSubmit) return;
-    if (accessCodeRequired) storeAccessCode(accessCode);
     generate(variationIds, { text: text.trim(), subjectGender });
   };
 
   const songsWritten = [...results.values()].filter((result) => result.status === "done").length;
   const stats: readonly Stat[] = [
-    { label: "שירים בסבב הזה", value: songsWritten, hint: `מתוך ${results.size.toLocaleString("he-IL")} גרסאות`, icon: "🎵", tone: "sage" },
-    { label: "מילים במילון שלי", value: lexicon.entries.length, hint: "כתיבים שנבחרו באוזן", icon: "📖", tone: "peach" },
-    { label: "תיקוני הגייה", value: lexicon.history.length, hint: "נשמרו לסבב הלמידה", icon: "🎧", tone: "butter" },
-    { label: "סגנונות נבחרים", value: variationIds.length, hint: `עד ${MAX_VARIATIONS_PER_REQUEST} בכל פעם`, icon: "🎨", tone: "sky" },
+    { label: "שירים בסבב הזה", value: songsWritten, hint: `מתוך ${results.size.toLocaleString("he-IL")} גרסאות`, icon: "icon-music", tone: "sage" },
+    { label: "כתיבים שאהבתם", value: lexicon.entries.length, hint: "במילון שלי", icon: "icon-heart", tone: "peach" },
+    { label: "תיקוני הגייה", value: lexicon.history.length, hint: "נשמרו לסבב הלמידה", icon: "icon-clock", tone: "butter" },
+    { label: "סגנונות נבחרים", value: variationIds.length, hint: `עד ${MAX_VARIATIONS_PER_REQUEST} בכל פעם`, icon: "icon-flame", tone: "sky" },
   ];
+
+  if (gate === "checking") return null;
+  if (gate === "locked") return <AccessGate onUnlock={unlock} />;
 
   return (
     <div className="app">
@@ -107,6 +121,10 @@ export function SongStudio({ audioEnabled, accessCodeRequired }: SongStudioProps
       <main className="studio">
         <header className="topbar">
           <h1>סטודיו לשירים</h1>
+          <span className="topbar__avatar" aria-hidden="true">
+            {/* eslint-disable-next-line @next/next/no-img-element -- small static illustration */}
+            <img src="/illustrations/avatar.webp" alt="" width={230} height={284} />
+          </span>
         </header>
 
         <Hero />
@@ -149,19 +167,6 @@ export function SongStudio({ audioEnabled, accessCodeRequired }: SongStudioProps
 
           {audioEnabled && <ChipGroup legend="מי ישיר?" options={VOCAL_OPTIONS} value={vocal} onChange={setVocal} />}
 
-          {accessCodeRequired && (
-            <label className="field field--inline">
-              <span className="field__label">קוד גישה</span>
-              <input
-                type="password"
-                value={accessCode}
-                onChange={(event) => setAccessCode(event.target.value.trim())}
-                autoComplete="off"
-                required
-              />
-            </label>
-          )}
-
           <button type="submit" className="button button--primary" disabled={!canSubmit}>
             {isBusy ? "כותבים..." : variationIds.length > 1 ? `כתבו ${variationIds.length} גרסאות` : "כתבו שיר"}
           </button>
@@ -190,6 +195,8 @@ export function SongStudio({ audioEnabled, accessCodeRequired }: SongStudioProps
             ))}
           </div>
         </section>
+
+        <DiscoverBanner />
 
         <PersonalLexicon
           entries={lexicon.entries}

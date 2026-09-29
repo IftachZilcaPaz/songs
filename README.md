@@ -69,6 +69,8 @@ npm run dev
 | `MUSIC_MAX_SONG_SECONDS` | no | Upper bound for a full song, default 120 |
 | `APP_ACCESS_CODE` | no | When set, users must enter this code. Recommended for any public deployment, since every request spends API credit |
 
+With `APP_ACCESS_CODE` set, the app opens on an entry screen. The code is checked against `POST /api/access` and kept in the browser. Every paid route still checks it on its own.
+
 ## Deploying to Netlify
 
 Connect the repository; `netlify.toml` already sets the build. Add the environment variables in **Site configuration → Environment variables**. Netlify detects Next.js and applies its runtime automatically.
@@ -97,5 +99,7 @@ src/lib/hebrew              Pure niqqud / lexicon / voice-line utilities
 src/lib/songs               Variation catalog, API contract, prompts, draft -> Song
 src/lib/music               Song -> provider-neutral composition plan
 src/lib/server              Env, HTTP helpers, Claude + ElevenLabs clients
-src/components              Studio UI (RTL)
+src/app/api/access          POST: checks the access code for the entry screen
+src/components              Studio UI (RTL, light pastel theme)
+public/illustrations        Illustration assets (WebP) for the dashboard and the entry screen
 ```
