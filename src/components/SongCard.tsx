@@ -7,7 +7,8 @@ import { SECTION_LABELS, type AudioMode, type Song, type SongSection, type Vocal
 import type { Variation } from "@/lib/songs/variations";
 import { AudioStatus } from "./AudioStatus";
 import { PronunciationFixer, type PronunciationChoice } from "./PronunciationFixer";
-import type { SongResult } from "./useSongBatch";
+import { useHebrewSpeech } from "./useHebrewSpeech";
+import type { ReviewState, SongResult } from "./useSongBatch";
 import { songAudioRequest, useAudioRender } from "./useSongAudio";
 
 interface SongContext {
@@ -45,13 +46,14 @@ export function SongCard({ variation, result, onRegenerate, ...context }: SongCa
         </div>
       )}
 
-      {result.status === "done" && <SongBody song={result.song} onRegenerate={onRegenerate} {...context} />}
+      {result.status === "done" && <SongBody song={result.song} review={result.review} onRegenerate={onRegenerate} {...context} />}
     </article>
   );
 }
 
 interface SongBodyProps extends SongContext {
   readonly song: Song;
+  readonly review: ReviewState;
   readonly onRegenerate: () => void;
 }
 
@@ -63,7 +65,9 @@ function lyricsAsText(song: Song): string {
 const sameLocation = (a: WordLocation | null, b: WordLocation) =>
   a !== null && a.sectionIndex === b.sectionIndex && a.lineIndex === b.lineIndex && a.wordIndex === b.wordIndex;
 
-function SongBody({ song, onRegenerate, onSongChange, onRememberSpelling, ...audio }: SongBodyProps) {
+function SongBody({ song, review, onRegenerate, onSongChange, onRememberSpelling, ...audio }: SongBodyProps) {
+  // Edits and paid audio wait for the pronunciation review, which may still change the lyrics.
+  const reviewing = review.status === "running";
   const [showVoice, setShowVoice] = useState(false);
   const [copied, setCopied] = useState(false);
   const [fixing, setFixing] = useState(false);
@@ -92,6 +96,8 @@ function SongBody({ song, onRegenerate, onSongChange, onRememberSpelling, ...aud
 
   return (
     <>
+      <ReviewNotice review={review} />
+
       {fixing && <p className="notice">לחצו על מילה שלא נשמעה טוב, ותקבלו כמה דרכים לכתוב אותה לשמיעה ולבחירה.</p>}
 
       <div className="lyrics">
@@ -141,7 +147,7 @@ function SongBody({ song, onRegenerate, onSongChange, onRememberSpelling, ...aud
       )}
 
       <div className="card__actions">
-        <button type="button" className="button button--ghost" onClick={toggleFixing} aria-pressed={fixing}>
+        <button type="button" className="button button--ghost" onClick={toggleFixing} aria-pressed={fixing} disabled={reviewing}>
           {fixing ? "סיום תיקון הגייה" : "תיקון הגייה"}
         </button>
         <button type="button" className="button button--ghost" onClick={copy}>
@@ -155,7 +161,9 @@ function SongBody({ song, onRegenerate, onSongChange, onRememberSpelling, ...aud
         </button>
       </div>
 
-      {audio.audioEnabled && <SongAudio song={song} vocal={audio.vocal} accessCode={audio.accessCode} />}
+      <SongSpeech song={song} />
+
+      {audio.audioEnabled && <SongAudio song={song} vocal={audio.vocal} accessCode={audio.accessCode} disabled={reviewing} />}
     </>
   );
 }
@@ -220,11 +228,62 @@ const AUDIO_LOADING_TEXT = {
   full: "מייצרים את השיר המלא. זה יכול לקחת עד דקה...",
 } as const;
 
-function SongAudio({ song, vocal, accessCode }: { readonly song: Song; readonly vocal: Vocal; readonly accessCode: string }) {
+function ReviewNotice({ review }: { readonly review: ReviewState }) {
+  switch (review.status) {
+    case "running":
+      return <p className="notice pulse">בודקים את ההגייה של כל שורה לפני השמיעה...</p>;
+    case "failed":
+      return <p className="notice">בדיקת ההגייה לא הצליחה ({review.message}). אפשר להמשיך כרגיל.</p>;
+    case "done":
+      if (review.fixes.length === 0) return <p className="notice">בדיקת ההגייה עברה על כל השורות ולא מצאה בעיות.</p>;
+      return (
+        <details className="notice">
+          <summary>
+            בדיקת ההגייה תיקנה {review.fixes.length.toLocaleString("he-IL")}{" "}
+            {review.fixes.length === 1 ? "שורה" : "שורות"} (רק ניקוד, המילים לא השתנו)
+          </summary>
+          <ul className="review__list">
+            {review.fixes.map((fix) => (
+              <li key={`${fix.sectionIndex}:${fix.lineIndex}`}>
+                <strong>{fix.words.join(", ")}</strong>: {fix.reason}
+              </li>
+            ))}
+          </ul>
+        </details>
+      );
+  }
+}
+
+/** Free read-aloud with the device's Hebrew voice, to check the voice text before paying for audio. */
+function SongSpeech({ song }: { readonly song: Song }) {
+  const { supported, speaking, speak, stop } = useHebrewSpeech();
+  if (!supported) return null;
+  return (
+    <div className="card__actions">
+      <button
+        type="button"
+        className="button button--ghost"
+        onClick={() => (speaking ? stop() : speak(song.sections.flatMap((section) => section.voiceLines)))}
+        aria-pressed={speaking}
+      >
+        {speaking ? "עצירת ההקראה" : "הקראה חינמית של הטקסט לקול"}
+      </button>
+    </div>
+  );
+}
+
+interface SongAudioProps {
+  readonly song: Song;
+  readonly vocal: Vocal;
+  readonly accessCode: string;
+  readonly disabled: boolean;
+}
+
+function SongAudio({ song, vocal, accessCode, disabled }: SongAudioProps) {
   const { state, render } = useAudioRender(accessCode);
   // The song object is replaced on every pronunciation fix, so identity tells us the audio is outdated.
   const [renderedSong, setRenderedSong] = useState<Song | null>(null);
-  const loading = state.status === "loading";
+  const loading = state.status === "loading" || disabled;
   const suffix = state.status === "ready" && state.mode === "preview" ? " (דוגמה)" : "";
   const outdated = state.status === "ready" && renderedSong !== song;
 

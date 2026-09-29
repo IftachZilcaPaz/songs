@@ -1,10 +1,10 @@
 import "server-only";
-import { randomUUID } from "node:crypto";
+import { randomInt, randomUUID } from "node:crypto";
 import { mergeLexicons } from "@/lib/hebrew/lexicon";
 import { SongDraftSchema } from "@/lib/songs/draft";
 import { EmptySongError, finalizeSong } from "@/lib/songs/finalize";
 import { buildSystemPrompt, buildUserPrompt } from "@/lib/songs/prompt";
-import type { LexiconEntry, Song, SubjectGender } from "@/lib/songs/types";
+import { MAX_SEED, type LexiconEntry, type Song, type SubjectGender } from "@/lib/songs/types";
 import { getVariation, type VariationId } from "@/lib/songs/variations";
 import { askClaude } from "./claude";
 import { getEnv } from "./env";
@@ -32,7 +32,8 @@ export async function writeSong({ text, variationId, subjectGender, lexicon }: W
   });
 
   try {
-    return finalizeSong(draft, variationId, mergeLexicons(rules.lexicon, new Map(lexicon)), randomUUID());
+    const identity = { id: randomUUID(), seed: randomInt(MAX_SEED) };
+    return finalizeSong(draft, variationId, mergeLexicons(rules.lexicon, new Map(lexicon)), identity);
   } catch (error) {
     if (error instanceof EmptySongError) throw new PublicError(502, "השיר יצא ריק. נסו שוב.");
     throw error;

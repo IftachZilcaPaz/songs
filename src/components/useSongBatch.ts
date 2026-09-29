@@ -1,13 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { errorMessage, isAbortError, requestLyrics } from "@/lib/client/api";
+import { errorMessage, isAbortError, requestLyrics, requestReview } from "@/lib/client/api";
+import { applyLineFixes, type LineFix } from "@/lib/songs/review";
 import type { LexiconEntry, Song, SubjectGender } from "@/lib/songs/types";
 import type { VariationId } from "@/lib/songs/variations";
 
+export type ReviewState =
+  | { readonly status: "running" }
+  | { readonly status: "done"; readonly fixes: readonly LineFix[] }
+  | { readonly status: "failed"; readonly message: string };
+
 export type SongResult =
   | { readonly status: "loading" }
-  | { readonly status: "done"; readonly song: Song }
+  | { readonly status: "done"; readonly song: Song; readonly review: ReviewState }
   | { readonly status: "error"; readonly message: string };
 
 export interface SongBrief {
@@ -16,9 +22,10 @@ export interface SongBrief {
 }
 
 /**
- * Generates one song per variation in parallel. Each variation is an
- * independent request, so results appear as soon as each one is ready and
- * a failure affects only its own card.
+ * Generates one song per variation in parallel, then proofreads each song's
+ * pronunciation before any audio is rendered. Each variation is independent,
+ * so results appear as soon as they are ready and a failure affects only its
+ * own card.
  */
 export function useSongBatch(accessCode: string, lexicon: readonly LexiconEntry[]) {
   const [results, setResults] = useState<ReadonlyMap<VariationId, SongResult>>(new Map());
@@ -40,16 +47,25 @@ export function useSongBatch(accessCode: string, lexicon: readonly LexiconEntry[
       const controller = new AbortController();
       controllers.current.set(id, controller);
       setResult(id, { status: "loading" });
+      const personalLexicon = [...latestLexicon.current];
 
       try {
-        const song = await requestLyrics(
-          { ...brief, variationId: id, lexicon: [...latestLexicon.current] },
-          accessCode,
-          controller.signal,
-        );
-        setResult(id, { status: "done", song });
-      } catch (error) {
-        if (!isAbortError(error)) setResult(id, { status: "error", message: errorMessage(error) });
+        let song: Song;
+        try {
+          song = await requestLyrics({ ...brief, variationId: id, lexicon: personalLexicon }, accessCode, controller.signal);
+        } catch (error) {
+          if (!isAbortError(error)) setResult(id, { status: "error", message: errorMessage(error) });
+          return;
+        }
+        setResult(id, { status: "done", song, review: { status: "running" } });
+
+        try {
+          const sections = song.sections.map(({ voiceLines }) => ({ voiceLines: [...voiceLines] }));
+          const { fixes } = await requestReview({ ...brief, sections, lexicon: personalLexicon }, accessCode, controller.signal);
+          setResult(id, { status: "done", song: applyLineFixes(song, fixes), review: { status: "done", fixes } });
+        } catch (error) {
+          if (!isAbortError(error)) setResult(id, { status: "done", song, review: { status: "failed", message: errorMessage(error) } });
+        }
       } finally {
         if (controllers.current.get(id) === controller) controllers.current.delete(id);
       }
@@ -75,8 +91,13 @@ export function useSongBatch(accessCode: string, lexicon: readonly LexiconEntry[
     [run],
   );
 
-  /** Replaces a finished song after the user edits it (e.g. a pronunciation fix). */
-  const replaceSong = useCallback((id: VariationId, song: Song) => setResult(id, { status: "done", song }), [setResult]);
+  /** Replaces a finished song after the user edits it (e.g. a pronunciation fix), keeping its review. */
+  const replaceSong = useCallback((id: VariationId, song: Song) => {
+    setResults((previous) => {
+      const current = previous.get(id);
+      return current?.status === "done" ? new Map(previous).set(id, { ...current, song }) : previous;
+    });
+  }, []);
 
   useEffect(() => {
     const active = controllers.current;

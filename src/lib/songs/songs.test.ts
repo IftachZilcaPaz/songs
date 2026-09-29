@@ -23,7 +23,7 @@ const draft: SongDraft = {
 };
 
 describe("finalizeSong", () => {
-  const song = finalizeSong(draft, "pop", lexicon, "id-1");
+  const song = finalizeSong(draft, "pop", lexicon, { id: "id-1", seed: 7 });
 
   it("derives display lines from voice lines without niqqud", () => {
     expect(song.sections).toHaveLength(2);
@@ -43,12 +43,12 @@ describe("finalizeSong", () => {
   });
 
   it("falls back to the chorus for the preview", () => {
-    const withoutPreview = finalizeSong({ ...draft, preview_lines: [] }, "pop", lexicon, "id-2");
+    const withoutPreview = finalizeSong({ ...draft, preview_lines: [] }, "pop", lexicon, { id: "id-2", seed: 7 });
     expect(withoutPreview.previewVoiceLines).toEqual(["דָנָה, דָנָה", "נסוּ לעמוד בקצב"]);
   });
 
   it("rejects a draft without lyrics", () => {
-    expect(() => finalizeSong({ ...draft, sections: [{ kind: "verse", lines: [" "] }] }, "pop", lexicon, "x")).toThrow(EmptySongError);
+    expect(() => finalizeSong({ ...draft, sections: [{ kind: "verse", lines: [" "] }] }, "pop", lexicon, { id: "x", seed: 7 })).toThrow(EmptySongError);
   });
 });
 

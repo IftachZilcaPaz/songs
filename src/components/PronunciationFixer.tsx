@@ -6,6 +6,7 @@ import { stripNiqqud } from "@/lib/hebrew/niqqud";
 import { getWordAt, replaceWordInLine, type FixScope, type WordLocation } from "@/lib/songs/edit";
 import type { PronunciationOption, Song, Vocal } from "@/lib/songs/types";
 import { AudioStatus } from "./AudioStatus";
+import { useHebrewSpeech } from "./useHebrewSpeech";
 import { lineAudioRequest, useAudioRender } from "./useSongAudio";
 
 type OptionsState =
@@ -139,6 +140,7 @@ interface OptionRowProps {
 
 function OptionRow({ label, sayAs, spelling, line, song, vocal, accessCode, audioEnabled, onChoose }: OptionRowProps) {
   const { state, render } = useAudioRender(accessCode);
+  const speech = useHebrewSpeech();
 
   return (
     <div className="option" data-current={!onChoose}>
@@ -152,6 +154,11 @@ function OptionRow({ label, sayAs, spelling, line, song, vocal, accessCode, audi
         <span className="option__hint">{label}</span>
       </div>
       <div className="option__actions">
+        {speech.supported && (
+          <button type="button" className="button button--ghost" onClick={() => speech.speak([line])}>
+            הקראה
+          </button>
+        )}
         {audioEnabled && (
           <button
             type="button"

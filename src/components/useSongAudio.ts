@@ -60,6 +60,7 @@ export function songAudioRequest(song: Song, vocal: Vocal, mode: AudioMode): Aud
     sections: song.sections.map(({ kind, voiceLines }) => ({ kind, voiceLines: [...voiceLines] })),
     previewVoiceLines: [...song.previewVoiceLines],
     musicStyles: [...song.musicStyles],
+    seed: song.seed,
   };
 }
 
@@ -72,5 +73,6 @@ export function lineAudioRequest(song: Song, vocal: Vocal, line: string): AudioR
     sections: [{ kind: "chorus", voiceLines: [line] }],
     previewVoiceLines: [line],
     musicStyles: [...song.musicStyles],
+    seed: song.seed,
   };
 }

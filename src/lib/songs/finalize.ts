@@ -28,12 +28,17 @@ function prepareLines(lines: readonly string[], lexicon: Lexicon, limit: number)
     .slice(0, limit);
 }
 
+export interface SongIdentity {
+  readonly id: string;
+  readonly seed: number;
+}
+
 /**
  * Turns the model's draft into a Song: enforces the mechanical voice rules,
  * keeps names and confirmed words spelled consistently, and derives the
  * display text from the voice text so the two never drift apart.
  */
-export function finalizeSong(draft: SongDraft, variationId: VariationId, baseLexicon: Lexicon, id: string): Song {
+export function finalizeSong(draft: SongDraft, variationId: VariationId, baseLexicon: Lexicon, { id, seed }: SongIdentity): Song {
   // Confirmed-by-ear spellings take precedence over the model's pointing of names.
   const lexicon = mergeLexicons(lexiconFromPointedWords(draft.names), baseLexicon);
 
@@ -65,5 +70,6 @@ export function finalizeSong(draft: SongDraft, variationId: VariationId, baseLex
     checkByEar: unique([...draft.names, ...draft.check_by_ear].map((word) => prepareVoiceLine(word, lexicon))),
     musicStyles: unique([...getVariation(variationId).musicStyles, ...extraStyles]),
     warnings: findVoiceIssues([...allVoiceLines, ...previewVoiceLines]),
+    seed,
   };
 }

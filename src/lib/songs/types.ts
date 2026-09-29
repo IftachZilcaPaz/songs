@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { stripNiqqud } from "@/lib/hebrew/niqqud";
+import type { LineFix } from "./review";
 import { VARIATION_IDS, type VariationId } from "./variations";
 
 export const SECTION_KINDS = ["verse", "pre_chorus", "chorus", "bridge", "outro"] as const;
@@ -41,7 +42,11 @@ export interface Song {
   readonly checkByEar: readonly string[];
   readonly musicStyles: readonly string[];
   readonly warnings: readonly string[];
+  /** Reused for every rendering of this song, so a re-render sounds as close as possible to the last one. */
+  readonly seed: number;
 }
+
+export const MAX_SEED = 2_147_483_647;
 
 export const INPUT_TEXT_MIN = 10;
 export const INPUT_TEXT_MAX = 5000;
@@ -76,6 +81,7 @@ export const AudioRequestSchema = z.object({
     .max(12),
   previewVoiceLines: z.array(VoiceLine).max(4).default([]),
   musicStyles: z.array(z.string().trim().min(1).max(80)).max(12).default([]),
+  seed: z.number().int().min(0).max(MAX_SEED).optional(),
 });
 export type AudioRequest = z.input<typeof AudioRequestSchema>;
 export type ValidAudioRequest = z.output<typeof AudioRequestSchema>;
@@ -99,6 +105,19 @@ export interface PronunciationOption {
 
 export interface PronunciationResponse {
   readonly options: readonly PronunciationOption[];
+}
+
+export const ReviewRequestSchema = z.object({
+  /** What the song is about, for meaning and gender. */
+  text: z.string().trim().min(INPUT_TEXT_MIN).max(INPUT_TEXT_MAX),
+  subjectGender: z.enum(SUBJECT_GENDERS).default("unspecified"),
+  sections: z.array(z.object({ voiceLines: z.array(VoiceLine).min(1).max(30) })).min(1).max(12),
+  lexicon: z.array(LexiconEntrySchema).max(MAX_PERSONAL_LEXICON_ENTRIES).default([]),
+});
+export type ReviewRequest = z.input<typeof ReviewRequestSchema>;
+
+export interface ReviewResponse {
+  readonly fixes: readonly LineFix[];
 }
 
 /** Header carrying the optional access code that guards the paid APIs. */

@@ -13,7 +13,7 @@ export const POST = handleRoute(async (request) => {
   const chunks =
     input.mode === "preview" ? buildPreviewPlan(input) : buildFullSongPlan(input, getEnv().MUSIC_MAX_SONG_SECONDS * 1000);
 
-  const audio = await composeSong(chunks, request.signal);
+  const audio = await composeSong(chunks, input.seed, request.signal);
   return new Response(audio, {
     headers: { "content-type": AUDIO_CONTENT_TYPE, "cache-control": "no-store" },
   });

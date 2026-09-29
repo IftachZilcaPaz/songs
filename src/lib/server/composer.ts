@@ -19,11 +19,16 @@ function getClient(): ElevenLabsClient {
 }
 
 /** Starts rendering and returns the MP3 as a stream, so playback data flows while it is generated. */
-export async function composeSong(chunks: readonly MusicChunk[], signal?: AbortSignal): Promise<ReadableStream<Uint8Array>> {
+export async function composeSong(
+  chunks: readonly MusicChunk[],
+  seed: number | undefined,
+  signal?: AbortSignal,
+): Promise<ReadableStream<Uint8Array>> {
   return getClient().music.stream(
     {
       modelId: getEnv().ELEVENLABS_MUSIC_MODEL,
       outputFormat: "mp3_44100_128",
+      seed,
       compositionPlan: {
         chunks: chunks.map((chunk) => ({
           text: chunk.text,

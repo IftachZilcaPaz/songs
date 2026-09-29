@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/api/lyrics": ["./rules/**/*"],
     "/api/pronunciation": ["./rules/**/*"],
+    "/api/review": ["./rules/**/*"],
   },
   poweredByHeader: false,
 };

@@ -105,3 +105,54 @@ ${line}
 ${word}
 </word_heard_wrong>`;
 }
+
+/** Request-independent, so it is served from the prompt cache. */
+export function buildReviewSystemPrompt(voiceRules: string, lexicon: Lexicon): string {
+  return `You proofread the pronunciation of Hebrew lyrics before an AI singing engine sings them. The lyrics are final: you change niqqud only, never letters, words, spaces or punctuation. Rendering a song costs money, so every mispronunciation you catch now saves a full re-render.
+
+<what_to_fix>
+- Words the engine can read more than one way (verb or noun, past or imperative, different meanings): point them so the intended reading is the only one.
+- Present-tense verbs and adjectives ending in ה (עולה, רואה, קונה, שווה): point the final syllable to match the grammatical subject of that line (ריח עולֶה, היא עולָה). Read the line, not just the song's main person.
+- Words the engine may not know (names, loanwords, food, slang) whose stress is on the last syllable: point only the stressed syllable, as in rule 4 of the voice rules (שקשוקָה).
+- Niqqud that the rules do not require: remove it. A dagesh is allowed only in ב, כ, פ.
+- Keep every confirmed lexicon spelling exactly as it is.
+</what_to_fix>
+
+<output>
+- Return only the lines you changed, each as the whole corrected line with its section and line numbers from the input.
+- \`reason\` is up to ten plain Hebrew words, for example "ריח הוא זכר: עולֶה".
+- If nothing needs fixing, return an empty list. Do not change lines that are already fine.
+</output>
+
+<hebrew_voice_rules>
+${voiceRules.trim()}
+</hebrew_voice_rules>
+
+<confirmed_lexicon>
+${formatLexicon(lexicon)}
+</confirmed_lexicon>`;
+}
+
+export function buildReviewUserPrompt(
+  text: string,
+  subjectGender: SubjectGender,
+  sections: readonly { readonly voiceLines: readonly string[] }[],
+): string {
+  const lyrics = sections
+    .map((section, sectionIndex) =>
+      section.voiceLines.map((line, lineIndex) => `[section ${sectionIndex}, line ${lineIndex}] ${line}`).join("\n"),
+    )
+    .join("\n\n");
+
+  return `<what_the_song_is_about>
+${text}
+</what_the_song_is_about>
+
+<subject_gender>
+${GENDER_INSTRUCTIONS[subjectGender]}
+</subject_gender>
+
+<voice_lines>
+${lyrics}
+</voice_lines>`;
+}

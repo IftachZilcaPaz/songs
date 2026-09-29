@@ -20,6 +20,14 @@ The model writes only the **voice** version of each line. The server then applie
 
 Stress placement, rhyme on stressed syllables and balanced lines are handled by the model through the rules document, which goes into the system prompt verbatim (and is prompt-cached).
 
+## Pronunciation review before audio
+
+Right after a song is written, a second Claude pass proofreads every voice line for words the singing engine is likely to mispronounce (ambiguous readings, masculine/feminine present-tense forms such as עולֶה/עולָה, final-syllable stress on unfamiliar words). It may change niqqud only: a fix that changes letters is discarded, and the confirmed lexicon and dagesh rule are re-applied. Audio buttons stay disabled until the review finishes, so the paid render always uses the reviewed text.
+
+Each song also gets a fixed `seed`, reused for every render, so re-rendering after fixes stays as close as possible to the previous take.
+
+**Free read-aloud:** when the device has a Hebrew voice, the card offers a browser read-aloud of the voice text (and of each spelling in the fixer). It checks what the niqqud says, not how the singer will sing it.
+
 ## Fixing pronunciation by ear
 
 On a song card, **תיקון הגייה** turns every word into a button. Clicking a word that was sung wrongly asks Claude for three or four alternative voice spellings (same letters, different niqqud). Each option can be heard sung in its line, next to the current spelling. The chosen spelling is applied to the line or to the whole song, and can be remembered in **המילון שלי**. That personal dictionary is kept in the browser and sent with every new song, so a word fixed once stays fixed.
@@ -67,6 +75,7 @@ rules/                      Hebrew voice rules + confirmed lexicon (read at runt
 src/app/api/lyrics          POST: text + variation -> Song (Claude)
 src/app/api/audio           POST: Song -> MP3 stream (ElevenLabs)
 src/app/api/pronunciation   POST: word + line -> alternative voice spellings (Claude)
+src/app/api/review          POST: song voice lines -> niqqud-only pronunciation fixes (Claude)
 src/lib/hebrew              Pure niqqud / lexicon / voice-line utilities
 src/lib/songs               Variation catalog, API contract, prompts, draft -> Song
 src/lib/music               Song -> provider-neutral composition plan

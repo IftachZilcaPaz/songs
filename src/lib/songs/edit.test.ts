@@ -21,6 +21,7 @@ const song: Song = {
   checkByEar: [],
   musicStyles: [],
   warnings: [],
+  seed: 7,
 };
 
 describe("splitWords", () => {

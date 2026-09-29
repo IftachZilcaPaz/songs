@@ -7,6 +7,8 @@ import {
   type PronunciationOption,
   type PronunciationRequest,
   type PronunciationResponse,
+  type ReviewRequest,
+  type ReviewResponse,
   type Song,
 } from "@/lib/songs/types";
 
@@ -69,6 +71,11 @@ export async function requestPronunciationOptions(
 ): Promise<readonly PronunciationOption[]> {
   const response = await post("/api/pronunciation", input, accessCode, signal);
   return ((await response.json()) as PronunciationResponse).options;
+}
+
+export async function requestReview(input: ReviewRequest, accessCode: string, signal?: AbortSignal): Promise<ReviewResponse> {
+  const response = await post("/api/review", input, accessCode, signal);
+  return (await response.json()) as ReviewResponse;
 }
 
 export function isAbortError(error: unknown): boolean {
