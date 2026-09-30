@@ -52,9 +52,9 @@ export function Sidebar() {
       <div className="sidebar__brand">
         <span className="sidebar__avatar">
           {/* eslint-disable-next-line @next/next/no-img-element -- small static illustration */}
-          <img src="/illustrations/avatar.webp" alt="" width={230} height={284} />
+          <img src="/illustrations/roni-avatar.svg" alt="" width={236} height={236} />
         </span>
-        <span className="sidebar__hello">שלום! 👋</span>
+        <span className="sidebar__hello">היי, אני רוני! 👋</span>
       </div>
 
       <nav aria-label="ניווט">

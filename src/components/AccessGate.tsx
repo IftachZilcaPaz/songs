@@ -36,11 +36,11 @@ export function AccessGate({ onUnlock }: AccessGateProps) {
       <img className="gate__plant gate__plant--b" src="/illustrations/login-plant-b.webp" alt="" width={342} height={990} />
 
       <main className="gate__stage">
-        <img className="gate__scene float-slow" src="/illustrations/login-scene.webp" alt="" width={1100} height={810} />
+        <img className="gate__scene float-slow" src="/illustrations/roni-gate.svg" alt="" width={620} height={404} />
 
         <form className="gate__card" onSubmit={onSubmit}>
           <h1>ברוכים הבאים!</h1>
-          <p className="gate__subtitle">הזינו את קוד הגישה כדי להיכנס לסטודיו</p>
+          <p className="gate__subtitle">הזינו את קוד הגישה כדי להיכנס לרוני שירוני</p>
 
           <label className="gate__field">
             <span className="gate__field-icon" aria-hidden="true">
@@ -84,7 +84,7 @@ export function AccessGate({ onUnlock }: AccessGateProps) {
             {checking ? "בודקים..." : "כניסה"}
           </button>
 
-          <p className="gate__footer">אין לכם קוד? בקשו אותו ממי ששיתף אתכם בסטודיו.</p>
+          <p className="gate__footer">אין לכם קוד? בקשו אותו ממי ששיתף אתכם.</p>
         </form>
       </main>
     </div>

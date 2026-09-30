@@ -1,4 +1,4 @@
-# סטודיו לשירים
+# רוני שירוני
 
 A Next.js app that turns free text about a person (or anything else) into original Hebrew songs, in several style variations at once. Songs can then be sung with AI music generation.
 
@@ -101,5 +101,6 @@ src/lib/music               Song -> provider-neutral composition plan
 src/lib/server              Env, HTTP helpers, Claude + ElevenLabs clients
 src/app/api/access          POST: checks the access code for the entry screen
 src/components              Studio UI (RTL, light pastel theme)
-public/illustrations        Illustration assets (WebP) for the dashboard and the entry screen
+public/illustrations        Illustrations: Roni, the app character (SVG), and decorative WebP art
+art/roni                    Roni's source drawing; `python3 art/roni/build.py` regenerates her SVGs
 ```
