@@ -2,6 +2,9 @@ import {
   ACCESS_CODE_HEADER,
   type ApiErrorBody,
   type AudioRequest,
+  type GuideRequest,
+  type GuideResponse,
+  type PronunciationGuide,
   type LyricsRequest,
   type LyricsResponse,
   type PronunciationOption,
@@ -71,6 +74,11 @@ export async function requestPronunciationOptions(
 ): Promise<readonly PronunciationOption[]> {
   const response = await post("/api/pronunciation", input, accessCode, signal);
   return ((await response.json()) as PronunciationResponse).options;
+}
+
+export async function requestGuide(input: GuideRequest, accessCode: string, signal?: AbortSignal): Promise<PronunciationGuide> {
+  const response = await post("/api/guide", input, accessCode, signal);
+  return ((await response.json()) as GuideResponse).guide;
 }
 
 export async function requestReview(input: ReviewRequest, accessCode: string, signal?: AbortSignal): Promise<ReviewResponse> {

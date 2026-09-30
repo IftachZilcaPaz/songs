@@ -4,18 +4,18 @@ import { useState } from "react";
 import { splitWords } from "@/lib/hebrew/lexicon";
 import { applyWordFix, getWordAt, type WordLocation } from "@/lib/songs/edit";
 import type { FixRecord } from "@/lib/songs/memory-export";
-import { SECTION_LABELS, type AudioMode, type Song, type SongSection, type Vocal } from "@/lib/songs/types";
+import { SECTION_LABELS, type AudioMode, type Song, type SongSection } from "@/lib/songs/types";
 import type { Variation } from "@/lib/songs/variations";
 import { AudioStatus } from "./AudioStatus";
 import { PronunciationFixer, type PronunciationChoice } from "./PronunciationFixer";
 import { useHebrewSpeech } from "./useHebrewSpeech";
 import { getVariationTheme } from "./theme";
 import type { ReviewState, SongResult } from "./useSongBatch";
-import { songAudioRequest, useAudioRender } from "./useSongAudio";
+import { songAudioRequest, useAudioRender, type Singer } from "./useSongAudio";
 
 interface SongContext {
   readonly audioEnabled: boolean;
-  readonly vocal: Vocal;
+  readonly singer: Singer;
   readonly accessCode: string;
   /** Called with the edited song after a pronunciation fix. */
   readonly onSongChange: (song: Song) => void;
@@ -139,7 +139,7 @@ function SongBody({ song, review, onRegenerate, onSongChange, onRememberSpelling
           key={`${selected.sectionIndex}:${selected.lineIndex}:${selected.wordIndex}`}
           song={song}
           location={selected}
-          vocal={audio.vocal}
+          singer={audio.singer}
           accessCode={audio.accessCode}
           audioEnabled={audio.audioEnabled}
           onChoose={(choice) => applyChoice(selected, choice)}
@@ -182,7 +182,7 @@ function SongBody({ song, review, onRegenerate, onSongChange, onRememberSpelling
 
       <SongSpeech song={song} />
 
-      {audio.audioEnabled && <SongAudio song={song} vocal={audio.vocal} accessCode={audio.accessCode} disabled={reviewing} />}
+      {audio.audioEnabled && <SongAudio song={song} singer={audio.singer} accessCode={audio.accessCode} disabled={reviewing} />}
     </>
   );
 }
@@ -294,12 +294,12 @@ function SongSpeech({ song }: { readonly song: Song }) {
 
 interface SongAudioProps {
   readonly song: Song;
-  readonly vocal: Vocal;
+  readonly singer: Singer;
   readonly accessCode: string;
   readonly disabled: boolean;
 }
 
-function SongAudio({ song, vocal, accessCode, disabled }: SongAudioProps) {
+function SongAudio({ song, singer, accessCode, disabled }: SongAudioProps) {
   const { state, render } = useAudioRender(accessCode);
   // The song object is replaced on every pronunciation fix, so identity tells us the audio is outdated.
   const [renderedSong, setRenderedSong] = useState<Song | null>(null);
@@ -309,7 +309,7 @@ function SongAudio({ song, vocal, accessCode, disabled }: SongAudioProps) {
 
   const renderSong = (mode: AudioMode) => {
     setRenderedSong(song);
-    void render(songAudioRequest(song, vocal, mode));
+    void render(songAudioRequest(song, singer.vocal, mode), singer.pronunciationGuide);
   };
 
   return (

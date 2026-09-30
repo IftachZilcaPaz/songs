@@ -28,6 +28,12 @@ Each song also gets a fixed `seed`, reused for every render, so re-rendering aft
 
 **Free read-aloud:** when the device has a Hebrew voice, the card offers a browser read-aloud of the voice text (and of each spelling in the fixer). It checks what the niqqud says, not how the singer will sing it.
 
+## Pronunciation guide in Latin letters
+
+ElevenLabs Music has no pronunciation field: besides the lyrics, each chunk of the composition plan takes only free-text style directions. With **הנחיית הגייה לזמר** on (the default), every sung line also travels as one of those directions, transliterated by Claude from its niqqud with the stressed syllables in capitals (`lyric line 1 is pronounced: da-NA, da-NA, ha-YOM at bat ar-ba-IM`).
+
+Transliterations are written right before a render (`POST /api/guide`) and cached per exact voice line for the visit, so a line fixed by ear gets a fresh one and an unchanged line is never transliterated twice. Whether the engine follows the hints is an experiment: with the same seed, render a preview with the guide on and off and compare.
+
 ## Fixing pronunciation by ear
 
 On a song card, **תיקון הגייה** turns every word into a button. Clicking a word that was sung wrongly asks Claude for three or four alternative voice spellings (same letters, different niqqud). Each option can be heard sung in its line, next to the current spelling. The chosen spelling is applied to the line or to the whole song, and can be remembered in **המילון שלי**. That personal dictionary is kept in the browser and sent with every new song, so a word fixed once stays fixed.
@@ -95,6 +101,7 @@ src/app/api/lyrics          POST: text + variation -> Song (Claude)
 src/app/api/audio           POST: Song -> MP3 stream (ElevenLabs)
 src/app/api/pronunciation   POST: word + line -> alternative voice spellings (Claude)
 src/app/api/review          POST: song voice lines -> niqqud-only pronunciation fixes (Claude)
+src/app/api/guide           POST: voice lines -> Latin pronunciation guide for the singer (Claude)
 src/lib/hebrew              Pure niqqud / lexicon / voice-line utilities
 src/lib/songs               Variation catalog, API contract, prompts, draft -> Song
 src/lib/music               Song -> provider-neutral composition plan

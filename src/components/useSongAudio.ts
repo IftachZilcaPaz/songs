@@ -1,14 +1,46 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { errorMessage, isAbortError, requestAudio } from "@/lib/client/api";
-import type { AudioMode, AudioRequest, Song, Vocal } from "@/lib/songs/types";
+import { errorMessage, isAbortError, requestAudio, requestGuide } from "@/lib/client/api";
+import { previewLines } from "@/lib/music/plan";
+import type { AudioMode, AudioRequest, PronunciationGuide, Song, Vocal } from "@/lib/songs/types";
 
 export type AudioState =
   | { readonly status: "idle" }
   | { readonly status: "loading"; readonly mode: AudioMode }
   | { readonly status: "ready"; readonly mode: AudioMode; readonly url: string }
   | { readonly status: "error"; readonly mode: AudioMode; readonly message: string };
+
+/** How the engine is asked to sing, chosen once in the studio. */
+export interface Singer {
+  readonly vocal: Vocal;
+  /** Also send each line's pronunciation in Latin letters (see pronunciationStyles). */
+  readonly pronunciationGuide: boolean;
+}
+
+/**
+ * Transliterations already written in this visit, keyed by the exact voice
+ * line: a line is transliterated once, and a fixed line gets a fresh one.
+ */
+const guideCache = new Map<string, string>();
+
+function sungLines(request: AudioRequest): readonly string[] {
+  if (request.mode === "preview") return previewLines({ previewVoiceLines: request.previewVoiceLines ?? [], sections: request.sections });
+  return request.sections.flatMap((section) => section.voiceLines);
+}
+
+async function pronunciationGuideFor(request: AudioRequest, accessCode: string, signal: AbortSignal): Promise<PronunciationGuide> {
+  const lines = [...new Set(sungLines(request))];
+  const missing = lines.filter((line) => !guideCache.has(line));
+  if (missing.length > 0) {
+    const written = await requestGuide({ lines: missing }, accessCode, signal);
+    for (const [line, sayAs] of Object.entries(written)) guideCache.set(line, sayAs);
+  }
+  return Object.fromEntries(lines.flatMap((line) => {
+    const sayAs = guideCache.get(line);
+    return sayAs ? [[line, sayAs]] : [];
+  }));
+}
 
 /** Renders audio requests and owns the resulting object URL (revoked when replaced or unmounted). */
 export function useAudioRender(accessCode: string) {
@@ -22,14 +54,15 @@ export function useAudioRender(accessCode: string) {
   }, []);
 
   const render = useCallback(
-    async (request: AudioRequest) => {
+    async (request: AudioRequest, withGuide: boolean) => {
       controller.current?.abort();
       const current = new AbortController();
       controller.current = current;
       setState({ status: "loading", mode: request.mode });
 
       try {
-        const audio = await requestAudio(request, accessCode, current.signal);
+        const pronunciationGuide = withGuide ? await pronunciationGuideFor(request, accessCode, current.signal) : {};
+        const audio = await requestAudio({ ...request, pronunciationGuide }, accessCode, current.signal);
         releaseUrl();
         objectUrl.current = URL.createObjectURL(audio);
         setState({ status: "ready", mode: request.mode, url: objectUrl.current });

@@ -4,10 +4,10 @@ import { useEffect, useState } from "react";
 import { errorMessage, isAbortError, requestPronunciationOptions } from "@/lib/client/api";
 import { stripNiqqud } from "@/lib/hebrew/niqqud";
 import { getWordAt, replaceWordInLine, type FixScope, type WordLocation } from "@/lib/songs/edit";
-import type { PronunciationOption, Song, Vocal } from "@/lib/songs/types";
+import type { PronunciationOption, Song } from "@/lib/songs/types";
 import { AudioStatus } from "./AudioStatus";
 import { useHebrewSpeech } from "./useHebrewSpeech";
-import { lineAudioRequest, useAudioRender } from "./useSongAudio";
+import { lineAudioRequest, useAudioRender, type Singer } from "./useSongAudio";
 
 type OptionsState =
   | { readonly status: "loading" }
@@ -23,7 +23,7 @@ export interface PronunciationChoice {
 interface PronunciationFixerProps {
   readonly song: Song;
   readonly location: WordLocation;
-  readonly vocal: Vocal;
+  readonly singer: Singer;
   readonly accessCode: string;
   readonly audioEnabled: boolean;
   readonly onChoose: (choice: PronunciationChoice) => void;
@@ -37,7 +37,7 @@ interface PronunciationFixerProps {
  * sung in its line, and applies the one that sounds right.
  * Mount with a `key` per word so its state starts fresh.
  */
-export function PronunciationFixer({ song, location, vocal, accessCode, audioEnabled, onChoose, onAvoid, onClose }: PronunciationFixerProps) {
+export function PronunciationFixer({ song, location, singer, accessCode, audioEnabled, onChoose, onAvoid, onClose }: PronunciationFixerProps) {
   const word = getWordAt(song, location) ?? "";
   const line = song.sections[location.sectionIndex]?.voiceLines[location.lineIndex] ?? "";
 
@@ -77,7 +77,7 @@ export function PronunciationFixer({ song, location, vocal, accessCode, audioEna
       <p className="fixer__line">{stripNiqqud(line)}</p>
 
       {audioEnabled && (
-        <OptionRow label="הכתיב הנוכחי" spelling={word} line={line} song={song} vocal={vocal} accessCode={accessCode} audioEnabled />
+        <OptionRow label="הכתיב הנוכחי" spelling={word} line={line} song={song} singer={singer} accessCode={accessCode} audioEnabled />
       )}
 
       {options.status === "loading" && <p className="card__status pulse">מחפשים דרכים אחרות לכתוב את המילה...</p>}
@@ -101,7 +101,7 @@ export function PronunciationFixer({ song, location, vocal, accessCode, audioEna
               spelling={option.spelling}
               line={lineWith(option.spelling)}
               song={song}
-              vocal={vocal}
+              singer={singer}
               accessCode={accessCode}
               audioEnabled={audioEnabled}
               onChoose={() => choose(option.spelling)}
@@ -140,13 +140,13 @@ interface OptionRowProps {
   /** The line with this spelling in place, for the sung audition. */
   readonly line: string;
   readonly song: Song;
-  readonly vocal: Vocal;
+  readonly singer: Singer;
   readonly accessCode: string;
   readonly audioEnabled: boolean;
   readonly onChoose?: () => void;
 }
 
-function OptionRow({ label, sayAs, spelling, line, song, vocal, accessCode, audioEnabled, onChoose }: OptionRowProps) {
+function OptionRow({ label, sayAs, spelling, line, song, singer, accessCode, audioEnabled, onChoose }: OptionRowProps) {
   const { state, render } = useAudioRender(accessCode);
   const speech = useHebrewSpeech();
 
@@ -177,7 +177,7 @@ function OptionRow({ label, sayAs, spelling, line, song, vocal, accessCode, audi
             type="button"
             className="button button--secondary"
             disabled={state.status === "loading"}
-            onClick={() => render(lineAudioRequest(song, vocal, line))}
+            onClick={() => render(lineAudioRequest(song, singer.vocal, line), singer.pronunciationGuide)}
           >
             השמעה
           </button>

@@ -20,6 +20,7 @@ import { StatTiles, type Stat } from "./StatTiles";
 import { VARIATION_THEMES } from "./theme";
 import { usePersonalLexicon } from "./usePersonalLexicon";
 import { useSongBatch } from "./useSongBatch";
+import { useStoredFlag } from "./useStoredFlag";
 
 const ACCESS_CODE_STORAGE_KEY = "songs.accessCode";
 
@@ -34,6 +35,13 @@ const VOCAL_OPTIONS: readonly ChipOption<Vocal>[] = [
   { value: "auto", label: "לבחירת המנוע" },
   { value: "female", label: "זמרת" },
   { value: "male", label: "זמר" },
+];
+
+type GuideChoice = "on" | "off";
+
+const GUIDE_OPTIONS: readonly ChipOption<GuideChoice>[] = [
+  { value: "on", label: "עם הגייה באנגלית", hint: "כל שורה נשלחת גם באותיות לטיניות" },
+  { value: "off", label: "בלי", hint: "רק הטקסט המנוקד" },
 ];
 
 const VARIATION_OPTIONS: readonly ChipOption<VariationId>[] = VARIATIONS.map((variation) => ({
@@ -69,6 +77,8 @@ export function SongStudio({ audioEnabled, accessCodeRequired }: SongStudioProps
   const [subjectGender, setSubjectGender] = useState<SubjectGender>("unspecified");
   const [variationIds, setVariationIds] = useState<readonly VariationId[]>(DEFAULT_VARIATION_IDS);
   const [vocal, setVocal] = useState<Vocal>("auto");
+  const [pronunciationGuide, setPronunciationGuide] = useStoredFlag("songs.pronunciationGuide", true);
+  const singer = useMemo(() => ({ vocal, pronunciationGuide }), [vocal, pronunciationGuide]);
   const [accessCode, setAccessCode] = useState("");
   // "checking" until browser storage is read, so a returning user never sees the entry screen flash.
   const [gate, setGate] = useState<"checking" | "locked" | "open">(accessCodeRequired ? "checking" : "open");
@@ -166,6 +176,14 @@ export function SongStudio({ audioEnabled, accessCodeRequired }: SongStudioProps
           />
 
           {audioEnabled && <ChipGroup legend="מי ישיר?" options={VOCAL_OPTIONS} value={vocal} onChange={setVocal} />}
+          {audioEnabled && (
+            <ChipGroup
+              legend="הנחיית הגייה לזמר"
+              options={GUIDE_OPTIONS}
+              value={pronunciationGuide ? "on" : "off"}
+              onChange={(choice) => setPronunciationGuide(choice === "on")}
+            />
+          )}
 
           <button type="submit" className="button button--primary" disabled={!canSubmit}>
             {isBusy ? "כותבים..." : variationIds.length > 1 ? `כתבו ${variationIds.length} גרסאות` : "כתבו שיר"}
@@ -189,7 +207,7 @@ export function SongStudio({ audioEnabled, accessCodeRequired }: SongStudioProps
                 onFixRecorded={lexicon.record}
                 onAvoidWord={lexicon.avoid}
                 audioEnabled={audioEnabled}
-                vocal={vocal}
+                singer={singer}
                 accessCode={accessCode}
               />
             ))}

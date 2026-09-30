@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
     "/api/lyrics": ["./rules/**/*"],
     "/api/pronunciation": ["./rules/**/*"],
     "/api/review": ["./rules/**/*"],
+    "/api/guide": ["./rules/**/*"],
   },
   poweredByHeader: false,
 };

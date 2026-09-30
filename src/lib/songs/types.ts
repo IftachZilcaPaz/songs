@@ -84,6 +84,19 @@ export type LyricsRequest = z.input<typeof LyricsRequestSchema>;
 /** Limits mirror the music engine's: at most 30 lines per section and 200 characters per line. */
 const VoiceLine = z.string().trim().min(1).max(200);
 
+export const MAX_GUIDE_LINES = 120;
+export const MAX_SAY_AS_LENGTH = 200;
+
+/**
+ * How each voice line sounds, in Latin letters with the stressed syllables in
+ * capitals ("da-NA, da-NA"), keyed by the exact voice line. A line whose
+ * spelling changed no longer matches its key, so a stale guide is never sent.
+ */
+export const PronunciationGuideSchema = z
+  .record(VoiceLine, z.string().trim().min(1).max(MAX_SAY_AS_LENGTH))
+  .refine((guide) => Object.keys(guide).length <= MAX_GUIDE_LINES, `at most ${MAX_GUIDE_LINES} lines`);
+export type PronunciationGuide = Readonly<Record<string, string>>;
+
 export const AudioRequestSchema = z.object({
   variationId: z.enum(VARIATION_IDS),
   mode: z.enum(AUDIO_MODES),
@@ -95,6 +108,8 @@ export const AudioRequestSchema = z.object({
   previewVoiceLines: z.array(VoiceLine).max(4).default([]),
   musicStyles: z.array(z.string().trim().min(1).max(80)).max(12).default([]),
   seed: z.number().int().min(0).max(MAX_SEED).optional(),
+  /** Sent to the engine as per-line style hints when present. */
+  pronunciationGuide: PronunciationGuideSchema.default({}),
 });
 export type AudioRequest = z.input<typeof AudioRequestSchema>;
 export type ValidAudioRequest = z.output<typeof AudioRequestSchema>;
@@ -131,6 +146,15 @@ export type ReviewRequest = z.input<typeof ReviewRequestSchema>;
 
 export interface ReviewResponse {
   readonly fixes: readonly LineFix[];
+}
+
+export const GuideRequestSchema = z.object({
+  lines: z.array(VoiceLine).min(1).max(MAX_GUIDE_LINES),
+});
+export type GuideRequest = z.input<typeof GuideRequestSchema>;
+
+export interface GuideResponse {
+  readonly guide: PronunciationGuide;
 }
 
 /** Header carrying the optional access code that guards the paid APIs. */

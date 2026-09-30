@@ -143,6 +143,28 @@ ${word}
 }
 
 /** Request-independent, so it is served from the prompt cache. */
+export function buildGuideSystemPrompt(rules: PromptRules): string {
+  return `You write pronunciation guides for an AI music engine that sings Hebrew lyrics. The engine receives each Hebrew line together with your guide, written in Latin letters, and follows the guide for how the line should sound.
+
+<requirements>
+- Write how a native Israeli sings the line today: everyday spoken Hebrew, not normative grammar (tir-GUM, not tar-GUM).
+- The niqqud was chosen by ear and is final: follow it exactly. Where a letter has no niqqud, use the reading a native speaker would use in this line, including the grammatical gender and meaning the line calls for.
+- Separate syllables inside a word with hyphens and words with spaces. Write the stressed syllable of every word of two or more syllables in capitals: "shak-shu-KA", "LE-chem", "a-ni o-HEV o-TACH".
+- Letters: ch for ח and soft כ (as in Bach), ts for צ, sh for שׁ, s for שׂ and ס, v for soft ב and consonant ו, g as in "go", a e i o u as in Spanish.
+- Keep the line's commas. Nothing else: no Hebrew letters, no notes, no brackets.
+- Return a guide for every line, with its number from the input.
+</requirements>
+
+${rulesBlock(rules)}`;
+}
+
+export function buildGuideUserPrompt(lines: readonly string[]): string {
+  return `<voice_lines>
+${lines.map((line, index) => `[${index}] ${line}`).join("\n")}
+</voice_lines>`;
+}
+
+/** Request-independent, so it is served from the prompt cache. */
 export function buildReviewSystemPrompt(rules: PromptRules): string {
   return `You proofread the pronunciation of Hebrew lyrics before an AI singing engine sings them. The lyrics are final: you change niqqud only, never letters, words, spaces or punctuation. Rendering a song costs money, so every mispronunciation you catch now saves a full re-render.
 

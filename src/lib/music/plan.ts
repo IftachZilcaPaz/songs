@@ -1,4 +1,4 @@
-import type { SectionKind, ValidAudioRequest, Vocal } from "@/lib/songs/types";
+import type { PronunciationGuide, SectionKind, ValidAudioRequest, Vocal } from "@/lib/songs/types";
 import { getVariation } from "@/lib/songs/variations";
 
 /** One chunk of a music composition plan (provider-neutral). */
@@ -50,19 +50,36 @@ function globalStyles(request: ValidAudioRequest): string[] {
   return [...new Set([...styles, ...VOCAL_STYLES[request.vocal], ...LANGUAGE_STYLES])];
 }
 
+/**
+ * The engine takes no pronunciation field, only free-text style directions per
+ * chunk, so each line's Latin transliteration travels as one of them.
+ */
+export function pronunciationStyles(lines: readonly string[], guide: PronunciationGuide): string[] {
+  const hints = lines.flatMap((line, index) => {
+    const sayAs = guide[line];
+    return sayAs ? [`lyric line ${index + 1} is pronounced: ${sayAs}`] : [];
+  });
+  return hints.length > 0 ? ["follow the Hebrew pronunciation guide exactly, stressed syllables in capitals", ...hints] : [];
+}
+
+/** The lines a preview sings: the chosen preview lines, or the start of the song. */
+export function previewLines(request: Pick<ValidAudioRequest, "previewVoiceLines" | "sections">): readonly string[] {
+  return request.previewVoiceLines.length > 0 ? request.previewVoiceLines : request.sections[0]!.voiceLines.slice(0, 2);
+}
+
 function sungDurationMs(lineCount: number, secondsPerLine: number, paddingMs: number): number {
   return lineCount * secondsPerLine * 1000 + paddingMs;
 }
 
 /** A short clip of one or two lines, to hear the name and risky words before paying for the full song. */
 export function buildPreviewPlan(request: ValidAudioRequest): MusicChunk[] {
-  const lines = request.previewVoiceLines.length > 0 ? request.previewVoiceLines : request.sections[0]!.voiceLines.slice(0, 2);
+  const lines = previewLines(request);
   const { secondsPerLine } = getVariation(request.variationId);
   return [
     {
       text: [`[${SECTION_TAGS.chorus}]`, ...lines].join("\n"),
       durationMs: clamp(sungDurationMs(lines.length, secondsPerLine, PREVIEW_PADDING_MS), PREVIEW_MIN_MS, PREVIEW_MAX_MS),
-      positiveStyles: globalStyles(request),
+      positiveStyles: [...globalStyles(request), ...pronunciationStyles(lines, request.pronunciationGuide)],
       negativeStyles: NEGATIVE_STYLES,
     },
   ];
@@ -91,7 +108,7 @@ export function buildFullSongPlan(request: ValidAudioRequest, maxTotalMs: number
     return {
       text: [`[${tag}]`, ...section.voiceLines].join("\n"),
       durationMs: clamp(sungDurationMs(section.voiceLines.length, secondsPerLine, SECTION_PADDING_MS), CHUNK_MIN_MS, CHUNK_MAX_MS),
-      positiveStyles: [...styles, ...SECTION_STYLES[section.kind]],
+      positiveStyles: [...styles, ...SECTION_STYLES[section.kind], ...pronunciationStyles(section.voiceLines, request.pronunciationGuide)],
       negativeStyles: NEGATIVE_STYLES,
     };
   });
