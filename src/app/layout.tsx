@@ -6,7 +6,7 @@ import "./globals.css";
 const rubik = Rubik({ subsets: ["hebrew", "latin"], weight: ["400", "500", "600", "700"], variable: "--font-rubik" });
 
 export const metadata: Metadata = {
-  title: "רוני שירוני",
+  title: "השירונית של רונית",
   description: "כותבים על מישהו, ומקבלים שיר מקורי בעברית בכמה סגנונות.",
 };
 

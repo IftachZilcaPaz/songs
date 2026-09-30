@@ -54,7 +54,7 @@ export function Sidebar() {
           {/* eslint-disable-next-line @next/next/no-img-element -- small static illustration */}
           <img src="/illustrations/roni-avatar.svg" alt="" width={236} height={236} />
         </span>
-        <span className="sidebar__hello">היי, אני רוני! 👋</span>
+        <span className="sidebar__hello">היי, אני רונית! 👋</span>
       </div>
 
       <nav aria-label="ניווט">

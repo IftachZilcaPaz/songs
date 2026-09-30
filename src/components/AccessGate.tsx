@@ -40,7 +40,7 @@ export function AccessGate({ onUnlock }: AccessGateProps) {
 
         <form className="gate__card" onSubmit={onSubmit}>
           <h1>ברוכים הבאים!</h1>
-          <p className="gate__subtitle">הזינו את קוד הגישה כדי להיכנס לרוני שירוני</p>
+          <p className="gate__subtitle">הזינו את קוד הגישה כדי להיכנס לשירונית</p>
 
           <label className="gate__field">
             <span className="gate__field-icon" aria-hidden="true">

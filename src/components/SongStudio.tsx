@@ -120,7 +120,7 @@ export function SongStudio({ audioEnabled, accessCodeRequired }: SongStudioProps
 
       <main className="studio">
         <header className="topbar">
-          <h1>רוני שירוני</h1>
+          <h1>השירונית של רונית</h1>
           <span className="topbar__avatar" aria-hidden="true">
             {/* eslint-disable-next-line @next/next/no-img-element -- small static illustration */}
             <img src="/illustrations/roni-avatar.svg" alt="" width={236} height={236} />

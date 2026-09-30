@@ -1,4 +1,4 @@
-"""Builds Roni's illustrations (hero, avatar, entry scene) from roni.svg.
+"""Builds Ronit's illustrations (hero, avatar, entry scene) from roni.svg.
 
 Usage: python3 art/roni/build.py   # writes public/illustrations/roni-*.svg
 """

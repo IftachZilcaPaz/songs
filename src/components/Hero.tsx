@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element -- static decorative illustrations */
 
-/** Welcome banner: Roni with her headphones, the invitation, and a plant, standing on a shelf. */
+/** Welcome banner: Ronit with her headphones, the invitation, and a plant, standing on a shelf. */
 export function Hero() {
   return (
     <section className="hero" aria-labelledby="hero-title">
