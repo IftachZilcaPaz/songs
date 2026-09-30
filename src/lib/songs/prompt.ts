@@ -12,7 +12,7 @@ const GENDER_INSTRUCTIONS: Readonly<Record<SubjectGender, string>> = {
 
 /** Singers should sound like Israelis talk today, not like a grammar book. */
 const SPOKEN_HEBREW_RULE =
-  "Point words the way most Israelis say them in everyday speech today, not by normative grammar. For example, ב, כ, פ at the start of a word often stay hard after a prefix in speech: ובבית is said וּבַּבַּיִת (u-ba-BA-yit), not וּבַבַּיִת (u-va-BA-yit).";
+  "Point every word, the way most Israelis say it in everyday speech today, not by normative grammar. For example, תרגום is said tir-GUM, so point it תִרְגוּם, not the normative תַּרְגּוּם (tar-GUM). The singer misreads unpointed words, even common ones such as לו, יש and כל.";
 
 /** The rule sources every Claude call receives. */
 export interface PromptRules {

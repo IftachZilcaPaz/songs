@@ -11,7 +11,8 @@ const LATIN_WORD = /[A-Za-z][A-Za-z'-]*/gu;
  */
 export function prepareVoiceLine(line: string, lexicon: Lexicon): string {
   const withoutDashes = line.replace(LONG_DASH, ", ");
-  return applyLexicon(removeDisallowedDagesh(withoutDashes), lexicon)
+  // Dagesh cleanup runs last, so a lexicon word placed after a prefix follows it too (ו + בֵּיצִים).
+  return removeDisallowedDagesh(applyLexicon(withoutDashes, lexicon))
     .replace(/\s+/gu, " ")
     .replace(/^[,\s]+|[,\s]+$/gu, "")
     .trim();

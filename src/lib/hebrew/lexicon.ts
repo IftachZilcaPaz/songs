@@ -94,11 +94,6 @@ export function containsWord(bare: string, words: ReadonlySet<string>): boolean 
   return matchWithPrefix(bare, (word) => (words.has(word) ? word : undefined)) !== undefined;
 }
 
-function lookup(bare: string, lexicon: Lexicon): string | undefined {
-  const found = matchWithPrefix(bare, (word) => lexicon.get(word));
-  return found && found.prefix + found.match;
-}
-
 /** Normalizes a single bare Hebrew word, or returns undefined if the input is not one. */
 export function asBareWord(text: string): string | undefined {
   const tokens = tokenizeHebrewWords(stripNiqqud(text.trim()));
@@ -118,8 +113,26 @@ export function parseWordList(source: string): ReadonlySet<string> {
   return words;
 }
 
-/** Replaces every word found in the lexicon (with or without a prefix) by its confirmed spelling. */
+/** LEADING_LETTERS[n] matches the first n letters of a pointed word, with their marks. */
+const LEADING_LETTERS = Array.from(
+  { length: MAX_PREFIX_LENGTH + 1 },
+  (_, count) => new RegExp(`^(?:[${HEBREW_LETTERS}][${HEBREW_MARKS}]*){${count}}`, "u"),
+);
+
+function leadingLetters(word: string, count: number): string {
+  const pattern = LEADING_LETTERS[count];
+  return pattern ? (word.match(pattern)?.[0] ?? "") : "";
+}
+
+/**
+ * Replaces every word found in the lexicon (with or without a prefix) by its
+ * confirmed spelling. A prefix keeps the writer's own pointing, which depends
+ * on meaning (לָעוֹלָם "to the world" vs לְעוֹלָם "forever").
+ */
 export function applyLexicon(text: string, lexicon: Lexicon): string {
   if (lexicon.size === 0) return text;
-  return text.replace(WORD, (word) => lookup(stripNiqqud(word), lexicon) ?? word);
+  return text.replace(WORD, (word) => {
+    const found = matchWithPrefix(stripNiqqud(word), (bare) => lexicon.get(bare));
+    return found ? leadingLetters(word, found.prefix.length) + found.match : word;
+  });
 }

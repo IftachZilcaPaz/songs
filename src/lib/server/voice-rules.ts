@@ -28,7 +28,8 @@ async function load(): Promise<VoiceRules> {
 
   const contextWords = parseWordList(contextSource);
   const lexicon = parseLexicon(lexiconSource);
-  const conflicts = [...lexicon.keys()].filter((word) => containsWord(word, contextWords));
+  // Curated keys are whole words, so they are compared exactly: prefix matching would flag מלך as מ + לך.
+  const conflicts = [...lexicon.keys()].filter((word) => contextWords.has(word));
   if (conflicts.length > 0) {
     throw new Error(`voice-lexicon.txt must not contain context-dependent words: ${conflicts.join(", ")}`);
   }

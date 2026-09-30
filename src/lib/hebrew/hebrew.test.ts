@@ -30,6 +30,18 @@ describe("removeDisallowedDagesh", () => {
     expect(removeDisallowedDagesh("טִיוּל וּמְחִירִים")).toBe("טִיוּל וּמְחִירִים");
   });
 
+  it("removes dagesh from a ב right after a ו or ב prefix", () => {
+    expect(removeDisallowedDagesh("וּבֵּיצִים")).toBe("וּבֵיצִים");
+    expect(removeDisallowedDagesh("וּבְּתָאִילַנְד")).toBe("וּבְתָאִילַנְד");
+    expect(removeDisallowedDagesh("בַּבּוֹקֶר")).toBe("בַּבוֹקֶר");
+    expect(removeDisallowedDagesh("וּבַּבַּיִת")).toBe("וּבַבַיִת");
+  });
+
+  it("keeps other dagesh: a word-initial ב, a ב inside the word, a כ after a prefix", () => {
+    expect(removeDisallowedDagesh("בֵּיצִים קִיבַּלְתִי הַבַּיִת")).toBe("בֵּיצִים קִיבַּלְתִי הַבַּיִת");
+    expect(removeDisallowedDagesh("וְכָּל")).toBe("וְכָּל");
+  });
+
   it("removes dagesh from a vav that carries a vowel (not a shuruk)", () => {
     expect(removeDisallowedDagesh("צִוָּה")).toBe("צִוָה");
   });
@@ -60,6 +72,10 @@ describe("lexicon", () => {
     expect(names.get("דנה")).toBe("דָנָה");
     expect(names.has("ג'ניפר")).toBe(false);
     expect(applyLexicon("לדנה ודנה", names)).toBe("לדָנָה ודָנָה");
+  });
+
+  it("keeps the writer's pointing of a prefix", () => {
+    expect(applyLexicon("וְאחת וּנסו", lexicon)).toBe("וְאחַת וּנסוּ");
   });
 
   it("lets later lexicons win", () => {

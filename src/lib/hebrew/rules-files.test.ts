@@ -21,20 +21,29 @@ describe("rules files", () => {
   });
 
   it("keep context-dependent words out of the fixed lexicon", () => {
-    expect([...lexicon.keys()].filter((word) => containsWord(word, contextWords))).toEqual([]);
+    expect([...lexicon.keys()].filter((word) => contextWords.has(word))).toEqual([]);
   });
 
   it("do not both fix and avoid the same word", () => {
     expect([...avoidWords].filter((word) => lexicon.has(word))).toEqual([]);
   });
 
-  it("only use dagesh in ב, כ, פ", () => {
+  it("only use dagesh in ב, כ, פ, and never on a ב after a ו or ב prefix", () => {
     for (const [, pointed] of lexicon) expect(removeDisallowedDagesh(pointed)).toBe(pointed);
   });
 
-  it("apply the confirmed spellings from this learning round", () => {
-    expect(applyLexicon("ריח של שקשוקה ובלב מרתון", lexicon)).toBe("ריח של שַקְשוּקה ובַּלֵב מַרָתוֹן");
+  it("apply the confirmed spellings from the learning rounds", () => {
+    expect(applyLexicon("ריח של שקשוקה ומרתון", lexicon)).toBe("ריח של שַקְשוּקה ומַרָתוֹן");
     expect(containsWord("ולך", contextWords)).toBe(true);
-    expect(applyLexicon("ובבוקר היא רצה", lexicon)).toBe("ובַּבּוֹקֶר היא רצה");
+    expect(applyLexicon("ובבוקר היא רצה", lexicon)).toBe("ובַּבוֹקֶר היא רצה");
+    expect(applyLexicon("יש לו אישה הכי יפה בעולם", lexicon)).toBe("יֵשׁ לוֹ אִישָׁה הֲכִי יפה בָּעוֹלָם");
+  });
+
+  it("leave context-dependent words to the writer", () => {
+    for (const word of ["בלב", "מחכה", "שעושה", "לעולם", "מעבר", "אוסף"]) expect(contextWords.has(word)).toBe(true);
+    // A prefix keeps the writer's pointing, so a context word built on a lexicon word keeps its meaning.
+    expect(applyLexicon("לְעולם ולָעולם", lexicon)).toBe("לְעוֹלָם ולָעוֹלָם");
+    // מלך is a word of its own, not מ + לך.
+    expect(applyLexicon("מלך הלול", lexicon)).toBe("מֶלֶךְ הַלוּל");
   });
 });

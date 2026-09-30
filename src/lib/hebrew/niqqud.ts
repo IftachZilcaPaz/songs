@@ -17,6 +17,11 @@ const VAV = "ו";
 const VOWEL_POINT = /[ְ-ׇֻ]/u;
 
 const MARKS_GLOBAL = new RegExp(`[${HEBREW_MARKS}]`, "gu");
+/** A word starting with a ו or ב prefix, then one or two ב (ובתאילנד, בבוקר, ובבית). */
+const BET_AFTER_PREFIX = new RegExp(
+  `(?<![${HEBREW_LETTERS}${HEBREW_MARKS}])([וב][${HEBREW_MARKS}]*)(ב[${HEBREW_MARKS}]*)(ב[${HEBREW_MARKS}]*)?`,
+  "gu",
+);
 const MARK_SINGLE = new RegExp(`[${HEBREW_MARKS}]`, "u");
 const LETTER_WITH_MARKS = new RegExp(`([${HEBREW_LETTERS}])([${HEBREW_MARKS}]+)`, "gu");
 
@@ -32,11 +37,18 @@ export function hasNiqqud(text: string): boolean {
  * Removes every dagesh except where it changes the sound (בּ כּ פּ) and keeps
  * shuruk (וּ), which is a vowel rather than a dagesh. A dagesh elsewhere makes
  * voice engines move the stress to the wrong syllable.
+ *
+ * A ב right after a ו or ב prefix loses its dagesh too: the singer says it
+ * hard anyway, and the dagesh made it sound worse (confirmed by ear:
+ * וּבֵיצִים, וּבְתָאִילַנְד, בַּבוֹקֶר).
  */
 export function removeDisallowedDagesh(text: string): string {
-  return text.replace(LETTER_WITH_MARKS, (cluster, letter: string, marks: string) => {
-    if (!marks.includes(DAGESH) || HARD_SOUND_LETTERS.has(letter)) return cluster;
-    const isShuruk = letter === VAV && !VOWEL_POINT.test(marks);
-    return isShuruk ? cluster : letter + marks.replaceAll(DAGESH, "");
-  });
+  const dropDagesh = (cluster = "") => cluster.replaceAll(DAGESH, "");
+  return text
+    .replace(LETTER_WITH_MARKS, (cluster, letter: string, marks: string) => {
+      if (!marks.includes(DAGESH) || HARD_SOUND_LETTERS.has(letter)) return cluster;
+      const isShuruk = letter === VAV && !VOWEL_POINT.test(marks);
+      return isShuruk ? cluster : letter + dropDagesh(marks);
+    })
+    .replace(BET_AFTER_PREFIX, (_, prefix: string, bet: string, secondBet?: string) => prefix + dropDagesh(bet) + dropDagesh(secondBet));
 }

@@ -12,9 +12,9 @@ The model writes only the **voice** version of each line. The server then applie
 | Rule | Where |
 |---|---|
 | Display text has no niqqud: derived by stripping the voice text, so the two never drift apart | `src/lib/hebrew/niqqud.ts` |
-| Dagesh only in בּ/כּ/פּ; shuruk (וּ) kept | `removeDisallowedDagesh` |
+| Dagesh only in בּ/כּ/פּ, and never on a ב right after a ו or ב prefix (וּבֵיצִים, בַּבוֹקֶר); shuruk (וּ) kept | `removeDisallowedDagesh` |
 | No long dash (— / –) | `prepareVoiceLine` |
-| Confirmed lexicon spellings, prefixes kept (ואחַת) | `rules/voice-lexicon.txt`, `src/lib/hebrew/lexicon.ts` |
+| Confirmed lexicon spellings; a prefix keeps the writer's pointing (לָעוֹלָם) | `rules/voice-lexicon.txt`, `src/lib/hebrew/lexicon.ts` |
 | A person's name spelled the same way everywhere | name entries in `finalizeSong` |
 | Numbers written as digits, Latin words | shown as warnings on the song card |
 
@@ -32,7 +32,7 @@ Each song also gets a fixed `seed`, reused for every render, so re-rendering aft
 
 On a song card, **תיקון הגייה** turns every word into a button. Clicking a word that was sung wrongly asks Claude for three or four alternative voice spellings (same letters, different niqqud). Each option can be heard sung in its line, next to the current spelling. The chosen spelling is applied to the line or to the whole song, and can be remembered in **המילון שלי**. That personal dictionary is kept in the browser and sent with every new song, so a word fixed once stays fixed.
 
-When no spelling works, **אף אפשרות לא עובדת** adds the word to the personal avoid list: new songs are written without it, and a warning appears if it slips through. Colorful everyday words are otherwise kept on purpose; the writer is told to point them carefully rather than replace them. All prompts ask for niqqud that follows everyday spoken Israeli Hebrew rather than normative grammar (וּבַּבַּיִת, u-ba-BA-yit).
+When no spelling works, **אף אפשרות לא עובדת** adds the word to the personal avoid list: new songs are written without it, and a warning appears if it slips through. Colorful everyday words are otherwise kept on purpose; the writer is told to point them carefully rather than replace them. All prompts ask for niqqud on every word, following everyday spoken Israeli Hebrew rather than normative grammar (תִרְגוּם, tir-GUM).
 
 **Avoiding a word for everyone:** add it to `rules/avoid-words.txt` (one bare word per line).
 
