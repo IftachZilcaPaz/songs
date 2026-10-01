@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { enforceSayAs } from "@/lib/hebrew/say-as";
 import { buildFullSongPlan, buildPreviewPlan, pronunciationStyles } from "@/lib/music/plan";
 import { toPronunciationGuide } from "./guide";
 import { AudioRequestSchema } from "./types";
@@ -10,6 +11,7 @@ describe("toPronunciationGuide", () => {
     const guide = toPronunciationGuide(
       { lines: [{ line: 0, say_as: " da-NA,  da-NA " }, { line: 1, say_as: "shak-shu-KA cha-MA" }] },
       lines,
+      new Map(),
     );
     expect(guide).toEqual({ "דַנָה, דַנָה": "da-NA, da-NA", "שַקְשוּקה חמה": "shak-shu-KA cha-MA" });
   });
@@ -25,8 +27,31 @@ describe("toPronunciationGuide", () => {
         ],
       },
       lines,
+      new Map(),
     );
     expect(guide).toEqual({ "דַנָה, דַנָה": "da-NA" });
+  });
+});
+
+describe("confirmed pronunciations", () => {
+  const confirmed = new Map([
+    ["שקשוקה", "shak-shu-KA"],
+    ["דנה", "da-NA"],
+  ]);
+
+  it("replace the model's transliteration of known words, keeping punctuation", () => {
+    expect(enforceSayAs(["דנה", "דנה", "שקשוקה", "חמה"], "DA-na, da-na shak-SHU-ka cha-MA!", confirmed)).toBe(
+      "da-NA, da-NA shak-shu-KA cha-MA!",
+    );
+  });
+
+  it("leave a transliteration alone when its words do not line up", () => {
+    expect(enforceSayAs(["דנה", "שקשוקה"], "da na shak-SHU-ka", confirmed)).toBe("da na shak-SHU-ka");
+  });
+
+  it("are applied to every line of the guide", () => {
+    const guide = toPronunciationGuide({ lines: [{ line: 0, say_as: "shak-SHU-ka cha-MA" }] }, ["שַקְשוּקה חמה"], confirmed);
+    expect(guide).toEqual({ "שַקְשוּקה חמה": "shak-shu-KA cha-MA" });
   });
 });
 

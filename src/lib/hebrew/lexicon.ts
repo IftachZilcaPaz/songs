@@ -1,4 +1,5 @@
 import { HEBREW_LETTERS, HEBREW_MARKS, removeDisallowedDagesh, stripNiqqud } from "./niqqud";
+import { isWordSayAs, type SayAsMap } from "./say-as";
 
 /** Maps a bare (unpointed) word to its confirmed voice spelling. */
 export type Lexicon = ReadonlyMap<string, string>;
@@ -33,28 +34,49 @@ export function splitWords(text: string): TextSegment[] {
   return segments;
 }
 
+export interface LexiconFileEntry {
+  readonly bare: string;
+  readonly pointed: string;
+  /** Latin pronunciation with the stressed syllable in capitals, when confirmed. */
+  readonly sayAs?: string;
+}
+
 /**
- * Parses the lexicon file format: one `bare = pointed` entry per line.
+ * Parses the lexicon file format: one `bare = pointed` or
+ * `bare = pointed | say-AS` entry per line.
  * Blank lines and lines starting with `#` are ignored.
  */
-export function parseLexicon(source: string): Lexicon {
-  const entries = new Map<string, string>();
+export function parseLexiconEntries(source: string): LexiconFileEntry[] {
+  const entries: LexiconFileEntry[] = [];
   source.split(/\r?\n/).forEach((rawLine, index) => {
     const line = rawLine.trim();
     if (!line || line.startsWith("#")) return;
 
     const separator = line.indexOf("=");
     const bare = line.slice(0, separator).trim();
-    const pointed = line.slice(separator + 1).trim();
-    if (separator < 0 || !bare || !pointed) {
+    const [pointedPart = "", sayAsPart, ...extra] = line.slice(separator + 1).split("|");
+    const pointed = pointedPart.trim();
+    const sayAs = sayAsPart?.trim();
+    if (separator < 0 || !bare || !pointed || extra.length > 0) {
       throw new Error(`Invalid lexicon line ${index + 1}: "${rawLine}"`);
     }
     if (stripNiqqud(pointed) !== bare) {
       throw new Error(`Lexicon line ${index + 1}: "${pointed}" is not a pointed form of "${bare}"`);
     }
-    entries.set(bare, pointed);
+    if (sayAs !== undefined && !isWordSayAs(sayAs)) {
+      throw new Error(`Lexicon line ${index + 1}: "${sayAs}" is not a Latin pronunciation such as "shak-shu-KA"`);
+    }
+    entries.push(sayAs ? { bare, pointed, sayAs } : { bare, pointed });
   });
   return entries;
+}
+
+export function parseLexicon(source: string): Lexicon {
+  return new Map(parseLexiconEntries(source).map(({ bare, pointed }) => [bare, pointed]));
+}
+
+export function parseLexiconSayAs(source: string): SayAsMap {
+  return new Map(parseLexiconEntries(source).flatMap(({ bare, sayAs }) => (sayAs ? [[bare, sayAs] as const] : [])));
 }
 
 /** Builds lexicon entries from pointed names, so a name is spelled the same way everywhere. */

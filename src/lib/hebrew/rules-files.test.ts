@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { applyLexicon, containsWord, parseLexicon, parseWordList } from "./lexicon";
+import { applyLexicon, containsWord, parseLexicon, parseLexiconEntries, parseLexiconSayAs, parseWordList } from "./lexicon";
 import { removeDisallowedDagesh } from "./niqqud";
 
 /**
@@ -37,6 +37,21 @@ describe("rules files", () => {
     expect(containsWord("ולך", contextWords)).toBe(true);
     expect(applyLexicon("ובבוקר היא רצה", lexicon)).toBe("ובַּבוֹקֶר היא רצה");
     expect(applyLexicon("יש לו אישה הכי יפה בעולם", lexicon)).toBe("יֵשׁ לוֹ אִישָׁה הֲכִי יפה בָּעוֹלָם");
+  });
+
+  it("carry a Latin pronunciation for the confirmed words", () => {
+    const sayAs = parseLexiconSayAs(read("voice-lexicon.txt"));
+    expect(sayAs.get("שקשוקה")).toBe("shak-shu-KA");
+    expect(sayAs.get("קטן")).toBe("ka-TAN");
+    // Every word with a Latin form has its stressed syllable in capitals.
+    for (const [word, latin] of sayAs) expect(latin, word).toMatch(/[A-Z]{2,}|^[A-Z]/u);
+  });
+
+  it("reject a malformed Latin pronunciation", () => {
+    expect(parseLexiconEntries("קטן = קָטָן | ka-TAN")).toEqual([{ bare: "קטן", pointed: "קָטָן", sayAs: "ka-TAN" }]);
+    expect(() => parseLexicon("קטן = קָטָן | קטן")).toThrow(/line 1/);
+    expect(() => parseLexicon("קטן = קָטָן | ka TAN")).toThrow(/line 1/);
+    expect(() => parseLexicon("קטן = קָטָן | ka-TAN | x")).toThrow(/line 1/);
   });
 
   it("leave context-dependent words to the writer", () => {

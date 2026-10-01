@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { errorMessage, isAbortError, requestAudio, requestGuide } from "@/lib/client/api";
 import { previewLines } from "@/lib/music/plan";
-import type { AudioMode, AudioRequest, PronunciationGuide, Song, Vocal } from "@/lib/songs/types";
+import type { AudioMode, AudioRequest, LexiconEntry, PronunciationGuide, Song, Vocal } from "@/lib/songs/types";
 
 export type AudioState =
   | { readonly status: "idle" }
@@ -16,6 +16,8 @@ export interface Singer {
   readonly vocal: Vocal;
   /** Also send each line's pronunciation in Latin letters (see pronunciationStyles). */
   readonly pronunciationGuide: boolean;
+  /** The user's spellings, whose Latin pronunciations the guide must use. */
+  readonly lexicon: readonly LexiconEntry[];
 }
 
 /**
@@ -29,11 +31,16 @@ function sungLines(request: AudioRequest): readonly string[] {
   return request.sections.flatMap((section) => section.voiceLines);
 }
 
-async function pronunciationGuideFor(request: AudioRequest, accessCode: string, signal: AbortSignal): Promise<PronunciationGuide> {
+async function pronunciationGuideFor(
+  request: AudioRequest,
+  lexicon: readonly LexiconEntry[],
+  accessCode: string,
+  signal: AbortSignal,
+): Promise<PronunciationGuide> {
   const lines = [...new Set(sungLines(request))];
   const missing = lines.filter((line) => !guideCache.has(line));
   if (missing.length > 0) {
-    const written = await requestGuide({ lines: missing }, accessCode, signal);
+    const written = await requestGuide({ lines: missing, lexicon: [...lexicon] }, accessCode, signal);
     for (const [line, sayAs] of Object.entries(written)) guideCache.set(line, sayAs);
   }
   return Object.fromEntries(lines.flatMap((line) => {
@@ -54,14 +61,16 @@ export function useAudioRender(accessCode: string) {
   }, []);
 
   const render = useCallback(
-    async (request: AudioRequest, withGuide: boolean) => {
+    async (request: AudioRequest, singer: Singer) => {
       controller.current?.abort();
       const current = new AbortController();
       controller.current = current;
       setState({ status: "loading", mode: request.mode });
 
       try {
-        const pronunciationGuide = withGuide ? await pronunciationGuideFor(request, accessCode, current.signal) : {};
+        const pronunciationGuide = singer.pronunciationGuide
+          ? await pronunciationGuideFor(request, singer.lexicon, accessCode, current.signal)
+          : {};
         const audio = await requestAudio({ ...request, pronunciationGuide }, accessCode, current.signal);
         releaseUrl();
         objectUrl.current = URL.createObjectURL(audio);

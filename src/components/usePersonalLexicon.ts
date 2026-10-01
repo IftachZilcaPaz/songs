@@ -3,17 +3,19 @@
 import { useCallback } from "react";
 import { asBareWord } from "@/lib/hebrew/lexicon";
 import { stripNiqqud } from "@/lib/hebrew/niqqud";
+import { isWordSayAs } from "@/lib/hebrew/say-as";
 import type { FixRecord } from "@/lib/songs/memory-export";
 import { MAX_AVOID_WORDS, MAX_PERSONAL_LEXICON_ENTRIES, type LexiconEntry } from "@/lib/songs/types";
 import { useStoredList } from "./useStoredList";
 
 function isEntry(value: unknown): value is LexiconEntry {
+  if (!Array.isArray(value) || (value.length !== 2 && value.length !== 3)) return false;
+  const [bare, pointed, sayAs] = value as unknown[];
   return (
-    Array.isArray(value) &&
-    value.length === 2 &&
-    typeof value[0] === "string" &&
-    typeof value[1] === "string" &&
-    stripNiqqud(value[1]) === value[0]
+    typeof bare === "string" &&
+    typeof pointed === "string" &&
+    stripNiqqud(pointed) === bare &&
+    (sayAs === undefined || (typeof sayAs === "string" && isWordSayAs(sayAs)))
   );
 }
 
@@ -22,7 +24,12 @@ const MAX_HISTORY = 500;
 function isFixRecord(value: unknown): value is FixRecord {
   if (typeof value !== "object" || value === null) return false;
   const record = value as Record<string, unknown>;
-  return typeof record.before === "string" && typeof record.after === "string" && typeof record.line === "string";
+  return (
+    typeof record.before === "string" &&
+    typeof record.after === "string" &&
+    typeof record.line === "string" &&
+    (record.sayAs === undefined || typeof record.sayAs === "string")
+  );
 }
 
 function isAvoidWord(value: unknown): value is string {
@@ -42,9 +49,10 @@ export function usePersonalLexicon() {
   const updateAvoided = avoided.update;
 
   const save = useCallback(
-    (pointed: string) => {
+    (pointed: string, sayAs?: string) => {
       const bare = stripNiqqud(pointed);
-      updateSpellings((previous) => [...previous.filter(([word]) => word !== bare), [bare, pointed]]);
+      const entry: LexiconEntry = sayAs && isWordSayAs(sayAs) ? [bare, pointed, sayAs] : [bare, pointed];
+      updateSpellings((previous) => [...previous.filter(([word]) => word !== bare), entry]);
       updateAvoided((previous) => previous.filter((word) => word !== bare));
     },
     [updateSpellings, updateAvoided],

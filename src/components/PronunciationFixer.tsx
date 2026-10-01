@@ -16,6 +16,8 @@ type OptionsState =
 
 export interface PronunciationChoice {
   readonly spelling: string;
+  /** The option's Latin pronunciation, kept with the spelling when remembered. */
+  readonly sayAs?: string;
   readonly scope: FixScope;
   readonly remember: boolean;
 }
@@ -61,7 +63,7 @@ export function PronunciationFixer({ song, location, singer, accessCode, audioEn
     setAttempt((value) => value + 1);
   };
 
-  const choose = (spelling: string) => onChoose({ spelling, scope: everywhere ? "song" : "line", remember });
+  const choose = (spelling: string, sayAs?: string) => onChoose({ spelling, sayAs, scope: everywhere ? "song" : "line", remember });
   const lineWith = (spelling: string) => replaceWordInLine(line, location.wordIndex, spelling);
 
   return (
@@ -104,7 +106,7 @@ export function PronunciationFixer({ song, location, singer, accessCode, audioEn
               singer={singer}
               accessCode={accessCode}
               audioEnabled={audioEnabled}
-              onChoose={() => choose(option.spelling)}
+              onChoose={() => choose(option.spelling, option.sayAs)}
             />
           ))}
 
@@ -177,7 +179,7 @@ function OptionRow({ label, sayAs, spelling, line, song, singer, accessCode, aud
             type="button"
             className="button button--secondary"
             disabled={state.status === "loading"}
-            onClick={() => render(lineAudioRequest(song, singer.vocal, line), singer.pronunciationGuide)}
+            onClick={() => render(lineAudioRequest(song, singer.vocal, line), singer)}
           >
             השמעה
           </button>

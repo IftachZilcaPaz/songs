@@ -9,6 +9,6 @@ export const maxDuration = 60;
 export const POST = handleRoute(async (request) => {
   assertAccess(request);
   const input = GuideRequestSchema.parse(await readJson(request));
-  const body: GuideResponse = { guide: await writePronunciationGuide(input.lines) };
+  const body: GuideResponse = { guide: await writePronunciationGuide(input.lines, input.lexicon) };
   return Response.json(body, { headers: { "cache-control": "no-store" } });
 }, mapClaudeError);

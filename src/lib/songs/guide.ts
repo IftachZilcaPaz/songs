@@ -1,4 +1,7 @@
 import { z } from "zod";
+import { tokenizeHebrewWords } from "@/lib/hebrew/lexicon";
+import { stripNiqqud } from "@/lib/hebrew/niqqud";
+import { enforceSayAs, isSayAs, type SayAsMap } from "@/lib/hebrew/say-as";
 import { MAX_SAY_AS_LENGTH, type PronunciationGuide } from "./types";
 
 export const GuideDraftSchema = z.object({
@@ -12,20 +15,18 @@ export const GuideDraftSchema = z.object({
 
 export type GuideDraft = z.infer<typeof GuideDraftSchema>;
 
-/** Latin letters, syllable hyphens, spaces and light punctuation only: no Hebrew, no markup. */
-const SAY_AS = /^[A-Za-z][A-Za-z' ,.!?-]*$/u;
-
 /**
  * Keeps only well-formed transliterations of lines that were actually asked
- * for, keyed by the exact voice line.
+ * for, keyed by the exact voice line, with every confirmed word pronounced
+ * exactly as confirmed.
  */
-export function toPronunciationGuide(draft: GuideDraft, lines: readonly string[]): PronunciationGuide {
+export function toPronunciationGuide(draft: GuideDraft, lines: readonly string[], confirmed: SayAsMap): PronunciationGuide {
   const guide: Record<string, string> = {};
   for (const { line, say_as } of draft.lines) {
     const voiceLine = lines[line];
     const sayAs = say_as.trim().replace(/\s+/gu, " ");
-    if (voiceLine === undefined || voiceLine in guide || sayAs.length > MAX_SAY_AS_LENGTH || !SAY_AS.test(sayAs)) continue;
-    guide[voiceLine] = sayAs;
+    if (voiceLine === undefined || voiceLine in guide || sayAs.length > MAX_SAY_AS_LENGTH || !isSayAs(sayAs)) continue;
+    guide[voiceLine] = enforceSayAs(tokenizeHebrewWords(stripNiqqud(voiceLine)), sayAs, confirmed);
   }
   return guide;
 }

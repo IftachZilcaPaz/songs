@@ -32,6 +32,8 @@ Each song also gets a fixed `seed`, reused for every render, so re-rendering aft
 
 ElevenLabs Music has no pronunciation field: besides the lyrics, each chunk of the composition plan takes only free-text style directions. With **הנחיית הגייה לזמר** on (the default), every sung line also travels as one of those directions, transliterated by Claude from its niqqud with the stressed syllables in capitals (`lyric line 1 is pronounced: da-NA, da-NA, ha-YOM at bat ar-ba-IM`).
 
+Confirmed words carry their own Latin pronunciation in the lexicon (`שקשוקה = שַקְשוּקה | shak-shu-KA`), and a spelling picked in the fixer keeps the option's pronunciation in **המילון שלי**. Those pronunciations are given to every Claude call and are also enforced on the guide word by word, so a confirmed word always reaches the singer exactly as it was heard.
+
 Transliterations are written right before a render (`POST /api/guide`) and cached per exact voice line for the visit, so a line fixed by ear gets a fresh one and an unchanged line is never transliterated twice. Whether the engine follows the hints is an experiment: with the same seed, render a preview with the guide on and off and compare.
 
 ## Fixing pronunciation by ear
@@ -51,7 +53,7 @@ Pronunciation improves in rounds, driven by ear:
 1. Render several songs and fix every word that sounds wrong (**תיקון הגייה**). Mark words no spelling can fix with **אף אפשרות לא עובדת**.
 2. Copy the collected data from **המילון שלי → העתקת המילון והיסטוריית התיקונים**.
 3. Fold it into `rules/`:
-   - `voice-lexicon.txt`: fixed spellings for words whose reading never changes.
+   - `voice-lexicon.txt`: fixed spellings for words whose reading never changes, with their Latin pronunciation after `|` when known.
    - `context-words.txt`: words whose reading depends on gender, tense or meaning (לך, את, רצה). They never get a fixed spelling; stored personal spellings for them are ignored.
    - `pronunciation-rules.md`: patterns found across fixes, given to every Claude call and winning over the original voice rules on conflicts.
    - `avoid-words.txt`: words the engine cannot sing whatever the niqqud.

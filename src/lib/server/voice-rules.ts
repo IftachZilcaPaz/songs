@@ -1,7 +1,8 @@
 import "server-only";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { containsWord, mergeLexicons, parseLexicon, parseWordList, type Lexicon } from "@/lib/hebrew/lexicon";
+import { containsWord, mergeLexicons, parseLexicon, parseLexiconSayAs, parseWordList, type Lexicon } from "@/lib/hebrew/lexicon";
+import type { SayAsMap } from "@/lib/hebrew/say-as";
 import type { PromptRules } from "@/lib/songs/prompt";
 import type { LexiconEntry } from "@/lib/songs/types";
 
@@ -34,7 +35,14 @@ async function load(): Promise<VoiceRules> {
     throw new Error(`voice-lexicon.txt must not contain context-dependent words: ${conflicts.join(", ")}`);
   }
 
-  return { document, pronunciationRules, lexicon, avoidWords: parseWordList(avoidSource), contextWords };
+  return {
+    document,
+    pronunciationRules,
+    lexicon,
+    lexiconSayAs: parseLexiconSayAs(lexiconSource),
+    avoidWords: parseWordList(avoidSource),
+    contextWords,
+  };
 }
 
 /** Loaded once per server instance; a failed load is retried on the next call. */
@@ -51,6 +59,23 @@ export function getVoiceRules(): Promise<VoiceRules> {
  * minus context-dependent words, whose spelling must follow each line.
  */
 export function effectiveLexicon(rules: VoiceRules, personal: readonly LexiconEntry[]): Lexicon {
-  const own = personal.filter(([bare]) => !containsWord(bare, rules.contextWords));
-  return mergeLexicons(rules.lexicon, new Map(own));
+  return mergeLexicons(rules.lexicon, new Map(ownEntries(rules, personal).map(([bare, pointed]) => [bare, pointed])));
+}
+
+/**
+ * Latin pronunciations matching `effectiveLexicon`: a word the user respelled
+ * takes the user's pronunciation, or none, never the shared one for a spelling
+ * it no longer has.
+ */
+export function effectiveSayAs(rules: VoiceRules, personal: readonly LexiconEntry[]): SayAsMap {
+  const merged = new Map(rules.lexiconSayAs);
+  for (const [bare, , sayAs] of ownEntries(rules, personal)) {
+    if (sayAs) merged.set(bare, sayAs);
+    else merged.delete(bare);
+  }
+  return merged;
+}
+
+function ownEntries(rules: VoiceRules, personal: readonly LexiconEntry[]): readonly LexiconEntry[] {
+  return personal.filter(([bare]) => !containsWord(bare, rules.contextWords));
 }

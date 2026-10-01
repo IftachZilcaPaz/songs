@@ -20,7 +20,7 @@ interface SongContext {
   /** Called with the edited song after a pronunciation fix. */
   readonly onSongChange: (song: Song) => void;
   /** Remembers a spelling for future songs. */
-  readonly onRememberSpelling: (spelling: string) => void;
+  readonly onRememberSpelling: (spelling: string, sayAs?: string) => void;
   /** Logs a fix (before, after, line) for later review. */
   readonly onFixRecorded: (fix: FixRecord) => void;
   /** Keeps a word the engine cannot sing out of future songs. */
@@ -100,12 +100,12 @@ function SongBody({ song, review, onRegenerate, onSongChange, onRememberSpelling
     setSelected(null);
   };
 
-  const applyChoice = (location: WordLocation, { spelling, scope, remember }: PronunciationChoice) => {
+  const applyChoice = (location: WordLocation, { spelling, sayAs, scope, remember }: PronunciationChoice) => {
     const before = getWordAt(song, location);
     const line = song.sections[location.sectionIndex]?.displayLines[location.lineIndex];
     onSongChange(applyWordFix(song, location, spelling, scope));
-    if (remember) onRememberSpelling(spelling);
-    if (before !== undefined && line !== undefined) onFixRecorded({ before, after: spelling, line });
+    if (remember) onRememberSpelling(spelling, sayAs);
+    if (before !== undefined && line !== undefined) onFixRecorded({ before, after: spelling, line, ...(sayAs && { sayAs }) });
     setSelected(null);
   };
 
@@ -309,7 +309,7 @@ function SongAudio({ song, singer, accessCode, disabled }: SongAudioProps) {
 
   const renderSong = (mode: AudioMode) => {
     setRenderedSong(song);
-    void render(songAudioRequest(song, singer.vocal, mode), singer.pronunciationGuide);
+    void render(songAudioRequest(song, singer.vocal, mode), singer);
   };
 
   return (

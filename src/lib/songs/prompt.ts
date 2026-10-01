@@ -1,4 +1,5 @@
 import type { Lexicon } from "@/lib/hebrew/lexicon";
+import type { SayAsMap } from "@/lib/hebrew/say-as";
 import type { SubjectGender } from "./types";
 import type { Variation } from "./variations";
 
@@ -22,14 +23,21 @@ export interface PromptRules {
   readonly pronunciationRules: string;
   /** Confirmed-by-ear spellings. */
   readonly lexicon: Lexicon;
+  /** Confirmed Latin pronunciations of lexicon words. */
+  readonly lexiconSayAs: SayAsMap;
 }
 
-function formatLexicon(lexicon: Lexicon): string {
-  return [...lexicon].map(([bare, pointed]) => `${bare} = ${pointed}`).join("\n");
+function formatLexicon(lexicon: Lexicon, sayAs: SayAsMap): string {
+  return [...lexicon]
+    .map(([bare, pointed]) => {
+      const latin = sayAs.get(bare);
+      return latin ? `${bare} = ${pointed} | ${latin}` : `${bare} = ${pointed}`;
+    })
+    .join("\n");
 }
 
 /** Identical in every request, so it stays inside the cached system prompt. */
-function rulesBlock({ document, pronunciationRules, lexicon }: PromptRules): string {
+function rulesBlock({ document, pronunciationRules, lexicon, lexiconSayAs }: PromptRules): string {
   return `<hebrew_voice_rules>
 ${document.trim()}
 </hebrew_voice_rules>
@@ -41,7 +49,8 @@ ${pronunciationRules.trim()}
 
 <confirmed_lexicon>
 Always use these spellings in voice lines. A one-letter prefix stays in front of the word.
-${formatLexicon(lexicon)}
+After "|" comes the confirmed Latin pronunciation, stressed syllable in capitals: this is exactly how the word must sound.
+${formatLexicon(lexicon, lexiconSayAs)}
 </confirmed_lexicon>`;
 }
 
@@ -152,14 +161,17 @@ export function buildGuideSystemPrompt(rules: PromptRules): string {
 - Separate syllables inside a word with hyphens and words with spaces. Write the stressed syllable of every word of two or more syllables in capitals: "shak-shu-KA", "LE-chem", "a-ni o-HEV o-TACH".
 - Letters: ch for ח and soft כ (as in Bach), ts for צ, sh for שׁ, s for שׂ and ס, v for soft ב and consonant ו, g as in "go", a e i o u as in Spanish.
 - Keep the line's commas. Nothing else: no Hebrew letters, no notes, no brackets.
+- Words with a confirmed Latin pronunciation (after "|" in the lexicon below, or in <confirmed_pronunciations>) are written exactly that way.
+- Write exactly one Latin word per Hebrew word, prefixes included in the word ("ve-ha-SHE-ket" for והשקט).
 - Return a guide for every line, with its number from the input.
 </requirements>
 
 ${rulesBlock(rules)}`;
 }
 
-export function buildGuideUserPrompt(lines: readonly string[]): string {
-  return `<voice_lines>
+export function buildGuideUserPrompt(lines: readonly string[], confirmed: SayAsMap): string {
+  const pronunciations = [...confirmed].map(([bare, sayAs]) => `${bare} | ${sayAs}`).join("\n");
+  return `${pronunciations ? `<confirmed_pronunciations>\n${pronunciations}\n</confirmed_pronunciations>\n\n` : ""}<voice_lines>
 ${lines.map((line, index) => `[${index}] ${line}`).join("\n")}
 </voice_lines>`;
 }

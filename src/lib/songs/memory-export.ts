@@ -8,6 +8,8 @@ export interface FixRecord {
   readonly after: string;
   /** The line it was in, without niqqud, for context. */
   readonly line: string;
+  /** The Latin pronunciation of the chosen spelling, when the option had one. */
+  readonly sayAs?: string;
 }
 
 export interface PronunciationMemoryExport {
@@ -24,12 +26,12 @@ export interface PronunciationMemoryExport {
 export function formatMemoryExport({ lexicon, avoidWords, history }: PronunciationMemoryExport): string {
   return [
     "# כתיבים שנבחרו באוזן (פורמט rules/voice-lexicon.txt)",
-    ...lexicon.map(([bare, pointed]) => `${bare} = ${pointed}`),
+    ...lexicon.map(([bare, pointed, sayAs]) => (sayAs ? `${bare} = ${pointed} | ${sayAs}` : `${bare} = ${pointed}`)),
     "",
     "# מילים שאף כתיב שלהן לא עבד (פורמט rules/avoid-words.txt)",
     ...avoidWords,
     "",
-    "# היסטוריית תיקונים: לפני ← אחרי | השורה",
-    ...history.map(({ before, after, line }) => `${before} ← ${after} | ${line}`),
+    "# היסטוריית תיקונים: לפני ← אחרי [הגייה בלטינית] | השורה",
+    ...history.map(({ before, after, line, sayAs }) => `${before} ← ${after}${sayAs ? ` [${sayAs}]` : ""} | ${line}`),
   ].join("\n");
 }

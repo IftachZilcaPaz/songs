@@ -60,10 +60,15 @@ describe("finalizeSong", () => {
 
 describe("prompts", () => {
   it("embeds the rules and lexicon in a request-independent system prompt", () => {
-    const system = buildSystemPrompt({ document: "# כללים", pronunciationRules: "## כללי הגייה", lexicon });
+    const system = buildSystemPrompt({
+      document: "# כללים",
+      pronunciationRules: "## כללי הגייה",
+      lexicon,
+      lexiconSayAs: new Map([["אחת", "a-CHAT"]]),
+    });
     expect(system).toContain("# כללים");
     expect(system).toContain("## כללי הגייה");
-    expect(system).toContain("אחת = אחַת");
+    expect(system).toContain("אחת = אחַת | a-CHAT");
     expect(system).not.toMatch(/[–—]/);
   });
 

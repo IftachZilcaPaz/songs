@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { asBareWord } from "@/lib/hebrew/lexicon";
 import { stripNiqqud } from "@/lib/hebrew/niqqud";
+import { isWordSayAs } from "@/lib/hebrew/say-as";
 import type { LineFix } from "./review";
 import { VARIATION_IDS, type VariationId } from "./variations";
 
@@ -54,9 +55,16 @@ export const INPUT_TEXT_MAX = 5000;
 
 export const MAX_PERSONAL_LEXICON_ENTRIES = 200;
 
-/** A `[bare, pointed]` pair whose pointed form keeps exactly the same letters. */
+const BareWord = z.string().trim().min(1).max(40);
+const PointedWord = z.string().trim().min(1).max(80);
+const WordSayAs = z.string().trim().refine(isWordSayAs, 'must be a Latin pronunciation such as "shak-shu-KA"');
+
+/**
+ * `[bare, pointed]` or `[bare, pointed, sayAs]`: the pointed form keeps exactly
+ * the same letters; `sayAs` is the Latin pronunciation the user heard and chose.
+ */
 export const LexiconEntrySchema = z
-  .tuple([z.string().trim().min(1).max(40), z.string().trim().min(1).max(80)])
+  .union([z.tuple([BareWord, PointedWord, WordSayAs]), z.tuple([BareWord, PointedWord])])
   .refine(([bare, pointed]) => stripNiqqud(pointed) === bare, "pointed form must match the bare word");
 export type LexiconEntry = z.infer<typeof LexiconEntrySchema>;
 
@@ -150,6 +158,8 @@ export interface ReviewResponse {
 
 export const GuideRequestSchema = z.object({
   lines: z.array(VoiceLine).min(1).max(MAX_GUIDE_LINES),
+  /** The user's own spellings: their Latin pronunciation wins over the shared one. */
+  lexicon: z.array(LexiconEntrySchema).max(MAX_PERSONAL_LEXICON_ENTRIES).default([]),
 });
 export type GuideRequest = z.input<typeof GuideRequestSchema>;
 

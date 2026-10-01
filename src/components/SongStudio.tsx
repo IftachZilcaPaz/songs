@@ -78,11 +78,11 @@ export function SongStudio({ audioEnabled, accessCodeRequired }: SongStudioProps
   const [variationIds, setVariationIds] = useState<readonly VariationId[]>(DEFAULT_VARIATION_IDS);
   const [vocal, setVocal] = useState<Vocal>("auto");
   const [pronunciationGuide, setPronunciationGuide] = useStoredFlag("songs.pronunciationGuide", true);
-  const singer = useMemo(() => ({ vocal, pronunciationGuide }), [vocal, pronunciationGuide]);
   const [accessCode, setAccessCode] = useState("");
   // "checking" until browser storage is read, so a returning user never sees the entry screen flash.
   const [gate, setGate] = useState<"checking" | "locked" | "open">(accessCodeRequired ? "checking" : "open");
   const lexicon = usePersonalLexicon();
+  const singer = useMemo(() => ({ vocal, pronunciationGuide, lexicon: lexicon.entries }), [vocal, pronunciationGuide, lexicon.entries]);
   const memory = useMemo(() => ({ lexicon: lexicon.entries, avoidWords: lexicon.avoidWords }), [lexicon.entries, lexicon.avoidWords]);
   const { results, generate, regenerate, replaceSong, isBusy } = useSongBatch(accessCode, memory);
 
