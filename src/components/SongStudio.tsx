@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { INPUT_TEXT_MAX, INPUT_TEXT_MIN, type SubjectGender, type Vocal } from "@/lib/songs/types";
 import {
   DEFAULT_VARIATION_IDS,
@@ -17,6 +17,7 @@ import { PersonalLexicon } from "./PersonalLexicon";
 import { Sidebar } from "./Sidebar";
 import { SongCard } from "./SongCard";
 import { StatTiles, type Stat } from "./StatTiles";
+import { Tour } from "./Tour";
 import { VARIATION_THEMES } from "./theme";
 import { usePersonalLexicon } from "./usePersonalLexicon";
 import { useSongBatch } from "./useSongBatch";
@@ -78,6 +79,10 @@ export function SongStudio({ audioEnabled, accessCodeRequired }: SongStudioProps
   const [variationIds, setVariationIds] = useState<readonly VariationId[]>(DEFAULT_VARIATION_IDS);
   const [vocal, setVocal] = useState<Vocal>("auto");
   const [pronunciationGuide, setPronunciationGuide] = useStoredFlag("songs.pronunciationGuide", true);
+  // New users get the tour once; anyone can replay it from the top bar.
+  const [tourSeen, setTourSeen, tourReady] = useStoredFlag("songs.tourSeen", false);
+  const [tourReplay, setTourReplay] = useState(false);
+  const textArea = useRef<HTMLTextAreaElement>(null);
   const [accessCode, setAccessCode] = useState("");
   // "checking" until browser storage is read, so a returning user never sees the entry screen flash.
   const [gate, setGate] = useState<"checking" | "locked" | "open">(accessCodeRequired ? "checking" : "open");
@@ -121,6 +126,13 @@ export function SongStudio({ audioEnabled, accessCodeRequired }: SongStudioProps
     { label: "סגנונות נבחרים", value: variationIds.length, hint: `עד ${MAX_VARIATIONS_PER_REQUEST} בכל פעם`, icon: "icon-flame", tone: "sky" },
   ];
 
+  const closeTour = (start: boolean) => {
+    setTourSeen(true);
+    setTourReplay(false);
+    // After the dialog closes, which hands focus back to whatever had it before.
+    if (start) requestAnimationFrame(() => textArea.current?.focus());
+  };
+
   if (gate === "checking") return null;
   if (gate === "locked") return <AccessGate onUnlock={unlock} />;
 
@@ -131,6 +143,12 @@ export function SongStudio({ audioEnabled, accessCodeRequired }: SongStudioProps
       <main className="studio">
         <header className="topbar">
           <h1>השירונית של רונית</h1>
+          <button type="button" className="topbar__help" onClick={() => setTourReplay(true)}>
+            <span className="topbar__help-icon" aria-hidden="true">
+              ?
+            </span>
+            איך זה עובד?
+          </button>
           <span className="topbar__avatar" aria-hidden="true">
             {/* eslint-disable-next-line @next/next/no-img-element -- small static illustration */}
             <img src="/illustrations/roni-avatar.svg" alt="" width={236} height={236} />
@@ -151,6 +169,7 @@ export function SongStudio({ audioEnabled, accessCodeRequired }: SongStudioProps
           <label className="field">
             <span className="field__label">ספרו לנו על מי או על מה השיר</span>
             <textarea
+              ref={textArea}
               value={text}
               onChange={(event) => setText(event.target.value)}
               maxLength={INPUT_TEXT_MAX}
@@ -224,6 +243,8 @@ export function SongStudio({ audioEnabled, accessCodeRequired }: SongStudioProps
           onUnavoid={lexicon.unavoid}
         />
       </main>
+
+      {(tourReplay || (tourReady && !tourSeen)) && <Tour audioEnabled={audioEnabled} onClose={closeTour} />}
     </div>
   );
 }

@@ -28,6 +28,10 @@ Each song also gets a fixed `seed`, reused for every render, so re-rendering aft
 
 **Free read-aloud:** when the device has a Hebrew voice, the card offers a browser read-aloud of the voice text (and of each spelling in the fixer). It checks what the niqqud says, not how the singer will sing it.
 
+## First visit
+
+New users get a short illustrated walkthrough (`src/components/Tour.tsx`): writing about the person, picking styles, the pronunciation review, the preview and full song (only when audio is configured), and fixing a word by ear. It opens once per browser and can be replayed from **איך זה עובד?** in the top bar.
+
 ## Pronunciation guide in Latin letters
 
 ElevenLabs Music has no pronunciation field: besides the lyrics, each chunk of the composition plan takes only free-text style directions. With **הנחיית הגייה לזמר** on (the default), every sung line also travels as one of those directions, transliterated by Claude from its niqqud with the stressed syllables in capitals (`lyric line 1 is pronounced: da-NA, da-NA, ha-YOM at bat ar-ba-IM`).

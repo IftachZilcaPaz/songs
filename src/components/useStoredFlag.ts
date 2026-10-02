@@ -2,9 +2,14 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-/** A yes/no preference kept in this browser's storage; falls back to `initial` when storage is unavailable. */
+/**
+ * A yes/no preference kept in this browser's storage; falls back to `initial`
+ * when storage is unavailable. `ready` turns true once storage has been read,
+ * so a stored choice never flashes its default first.
+ */
 export function useStoredFlag(key: string, initial: boolean) {
   const [value, setValue] = useState(initial);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     try {
@@ -14,6 +19,7 @@ export function useStoredFlag(key: string, initial: boolean) {
     } catch {
       // Storage unavailable (private mode): keep the default.
     }
+    setReady(true);
   }, [key]);
 
   const update = useCallback(
@@ -28,5 +34,5 @@ export function useStoredFlag(key: string, initial: boolean) {
     [key],
   );
 
-  return [value, update] as const;
+  return [value, update, ready] as const;
 }
